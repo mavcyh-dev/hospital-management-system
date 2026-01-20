@@ -1,0 +1,47 @@
+from app.database.models.specialty import Specialty
+
+SPECIALTIES_REFERENCE = [
+    "Anaesthesiology",
+    "Cardiology",
+    "Cardiothoracic Surgery",
+    "Dermatology",
+    "Diagnostic Radiology",
+    "Emergency Medicine",
+    "Endocrinology",
+    "Family Medicine",
+    "Gastroenterology",
+    "General Surgery",
+    "Geriatric Medicine",
+    "Haematology",
+    "Hand Surgery",
+    "Infectious Diseases",
+    "Internal Medicine",
+    "Medical Oncology",
+    "Neurology",
+    "Neurosurgery",
+    "Nuclear Medicine",
+    "Obstetrics & Gynaecology",
+    "Occupational Medicine",
+    "Ophthalmology",
+    "Orthopaedic Surgery",
+    "Otorhinolaryngology/ENT",
+    "Paediatric Medicine",
+    "Paediatric Surgery",
+    "Pathology",
+    "Plastic Surgery",
+    "Psychiatry",
+    "Public Health",
+    "Radiation Oncology",
+    "Rehabilitation Medicine",
+    "Renal Medicine",
+    "Respiratory Medicine",
+    "Rheumatology",
+    "Urology",
+    "Intensive Care Medicine",
+    "Sports Medicine",
+    "Palliative Medicine",
+]
+
+SPECIALTIES = [Specialty(name=name) for name in SPECIALTIES_REFERENCE]
+
+SPECIALTIES_FROM_NAME_MAP = {s.name: s for s in SPECIALTIES}

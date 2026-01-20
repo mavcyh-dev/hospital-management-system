@@ -1,0 +1,227 @@
+//////////////////////////////////////////////////////////////
+// PERSON & USER
+//////////////////////////////////////////////////////////////
+
+Table person {
+  person_id int [pk, increment]
+  sex tinyint [default: 0, note: 'ISO/IEC 5218: 0=Unknown, 1=Male, 2=Female, 9=Not applicable']
+  first_name varchar(50) [not null]
+  last_name varchar(50) [not null]
+  date_of_birth date [not null]
+  primary_email varchar(254) [not null]
+  primary_phone_number varchar(32) [not null]
+  primary_home_address varchar(255) [not null]
+  is_in_service bool [not null, default: true]
+}
+
+Table user {
+  user_id int [pk, increment]
+  person_id int [not null, unique]
+  username varchar(64) [not null, unique]
+  password_hash varchar(255) [not null]
+  created_datetime datetime [not null]
+  is_in_service bool [not null, default: true]
+}
+Ref: user.person_id < person.person_id
+
+
+//////////////////////////////////////////////////////////////
+// PROFILE TYPES (Lookup)
+//////////////////////////////////////////////////////////////
+
+Table profile_type {
+  profile_type_id int [pk, increment]
+  name varchar(32) [not null, unique] // doctor, patient, receptionist, admin
+}
+
+//////////////////////////////////////////////////////////////
+// PROFILES (Authoritative)
+//////////////////////////////////////////////////////////////
+
+Table profile {
+  profile_id int [pk, increment]
+  person_id int [not null]
+  profile_type_id int [not null]
+
+  created_datetime datetime [not null]
+  is_in_service bool [not null, default: true]
+
+  indexes {
+    (person_id, profile_type_id) [unique]
+  }
+}
+Ref: profile.person_id > person.person_id
+Ref: profile.profile_type_id > profile_type.profile_type_id
+
+//////////////////////////////////////////////////////////////
+// ROLE-SPECIFIC PROFILE DETAILS
+//////////////////////////////////////////////////////////////
+
+Table doctor_profile {
+  profile_id int [pk]
+  office_phone_number varchar(32)
+}
+
+Ref: doctor_profile.profile_id > profile.profile_id
+
+Table patient_profile {
+  profile_id int [pk]
+  medication_allergies text
+}
+
+Ref: patient_profile.profile_id > profile.profile_id
+
+Table receptionist_profile {
+  profile_id int [pk]
+}
+
+Ref: receptionist_profile.profile_id > profile.profile_id
+
+Table admin_profile {
+  profile_id int [pk]
+}
+
+Ref: admin_profile.profile_id > profile.profile_id
+
+
+//////////////////////////////////////////////////////////////
+// SPECIALTIES
+//////////////////////////////////////////////////////////////
+
+Table specialty {
+  specialty_id int [pk, increment]
+  name varchar(100) [not null]
+  is_in_service bool [not null, default: true]
+}
+
+Table doctor_specialty {
+  doctor_profile_id int
+  specialty_id int
+  indexes {
+    (doctor_profile_id, specialty_id) [pk]
+  }
+}
+Ref: doctor_specialty.doctor_profile_id < doctor_profile.profile_id
+Ref: doctor_specialty.specialty_id < specialty.specialty_id
+
+
+//////////////////////////////////////////////////////////////
+// APPOINTMENT REQUESTS
+//////////////////////////////////////////////////////////////
+
+Table appointment_request_status {
+  appointment_request_status_id int [pk, increment]
+  name varchar(50) [not null]
+}
+Table appointment_request {
+  appointment_request_id int [pk, increment]
+  patient_profile_id int [not null]
+  specialty_id int [not null]
+  reason text
+  preferred_doctor_profile_id int
+  preferred_datetime datetime
+  
+  created_datetime datetime [not null]
+  appointment_request_status_id int [not null]
+  appointment_id int
+
+  handled_by_profile_id int
+  handled_datetime datetime
+  handling_notes text
+
+  indexes {
+    (appointment_request_status_id, created_datetime)
+  }
+}
+Ref: appointment_request.patient_profile_id < patient_profile.profile_id
+Ref: appointment_request.preferred_doctor_profile_id < doctor_profile.profile_id
+Ref: appointment_request.specialty_id < specialty.specialty_id
+Ref: appointment_request.appointment_request_status_id < appointment_request_status.appointment_request_status_id
+Ref: appointment_request.appointment_id < appointment.appointment_id
+Ref: appointment_request.handled_by_profile_id < profile.profile_id
+
+
+//////////////////////////////////////////////////////////////
+// APPOINTMENTS
+//////////////////////////////////////////////////////////////
+
+Table appointment_status {
+  appointment_status_id int [pk, increment]
+  name varchar(50) [not null]
+}
+Table appointment {
+  appointment_id int [pk, increment]
+  start_datetime datetime [not null]
+  end_datetime datetime [not null]
+  patient_profile_id int [not null]
+  doctor_profile_id int [not null]
+  specialty_id int [not null]
+  room_name varchar(50) [not null]
+  reason text
+  appointment_status_id int [not null]
+
+  created_by_profile_id int [not null]
+  created_datetime datetime [not null]
+
+  cancelled_by_profile_id int
+  cancelled_datetime datetime
+  cancellation_reason text
+
+  indexes {
+    (patient_profile_id, start_datetime)
+    (doctor_profile_id, start_datetime)
+  }
+
+  checks {
+    `start_datetime < end_datetime`
+  }
+}
+Ref: appointment.patient_profile_id < patient_profile.profile_id
+Ref: appointment.doctor_profile_id < doctor_profile.profile_id
+Ref: appointment.specialty_id < specialty.specialty_id
+Ref: appointment.appointment_status_id < appointment_status.appointment_status_id
+Ref: appointment.created_by_profile_id < profile.profile_id
+Ref: appointment.cancelled_by_profile_id < profile.profile_id
+
+
+//////////////////////////////////////////////////////////////
+// MEDICATIONS & PRESCRIPTIONS
+//////////////////////////////////////////////////////////////
+
+Table medication {
+  medication_id int [pk, increment]
+  generic_name varchar(100) [not null]
+  is_in_service bool [not null, default: true]
+
+  indexes {
+    generic_name
+  }
+}
+
+Table prescription {
+  prescription_id int [pk, increment]
+  patient_profile_id int [not null]
+  doctor_profile_id int [not null]
+  appointment_id int
+  created_datetime datetime [not null]
+
+  indexes {
+    (patient_profile_id, created_datetime)
+  }
+}
+Ref: prescription.patient_profile_id < patient_profile.profile_id
+Ref: prescription.doctor_profile_id < doctor_profile.profile_id
+Ref: prescription.appointment_id < appointment.appointment_id
+
+Table prescription_item {
+  prescription_item_id int [pk, increment]
+  prescription_id int [not null]
+  medication_id int [not null]
+  instructions text
+
+  indexes {
+    prescription_id
+  }
+}
+Ref: prescription_item.prescription_id < prescription.prescription_id
+Ref: prescription_item.medication_id < medication.medication_id

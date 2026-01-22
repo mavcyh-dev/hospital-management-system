@@ -8,9 +8,12 @@ from sqlalchemy import (
     Date,
     ForeignKey,
     Boolean,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
+
+from app.lookups.enums import SexEnum
 
 if TYPE_CHECKING:
     from .profiles import Profile
@@ -27,7 +30,7 @@ class User(Base):
     )
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    created_datetime: Mapped[datetime] = mapped_column(DateTime)
+    created_datetime: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     is_in_service: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
@@ -52,6 +55,7 @@ class Person(Base):
     primary_email: Mapped[str] = mapped_column(String(254))
     primary_phone_number: Mapped[str] = mapped_column(String(32))
     primary_home_address: Mapped[str] = mapped_column(String(255))
+    created_datetime: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     is_in_service: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
@@ -59,3 +63,11 @@ class Person(Base):
         "User", back_populates="person", uselist=False
     )
     profiles: Mapped[List["Profile"]] = relationship("Profile", back_populates="person")
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def sex_enum(self):
+        return SexEnum(self.sex)

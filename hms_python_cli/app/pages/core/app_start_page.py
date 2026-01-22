@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from enum import Enum
 
-from app.pages.base_page import BasePage
+from app.pages.core.base_page import BasePage
 from app.ui.utils import app_logo, prompt_choice
 from app.lookups.enums import ProfileTypeEnum
 
@@ -62,11 +62,10 @@ class AppStartPage(BasePage):
             choices,
             default=self.selected_choice if self.selected_choice else choices[0][0],
             exitable=False,
+            clearable=False,
+            scrollable=False,
             show_frame=True,
         )
-
-        if self.selected_choice is None:
-            return None
 
         match self.selected_choice:
             case PageChoice.CREATE_USER_ACCOUNT:

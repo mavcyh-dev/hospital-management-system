@@ -2,6 +2,8 @@ from typing import Any
 
 from enum import Enum
 import time
+from datetime import date
+import operator
 from sqlalchemy.orm import Session
 
 from app.database.models.user_person import User
@@ -11,10 +13,11 @@ from app.ui.menu_form import MenuForm, MenuField
 from app.ui.input_result import InputResult
 from app.ui.inputs.text_input import TextInput
 from app.ui.inputs.enum_input import EnumInput
-from app.pages.base_page import BasePage
+from app.pages.core.base_page import BasePage
 from app.lookups.enums import SexEnum
 from app.validators import (
     validate_date,
+    validate_date_relation,
     validate_email,
     validate_phone_number,
 )
@@ -51,7 +54,7 @@ class EditPersonalInformationPage(BasePage):
             if data is None:
                 return None
 
-            # Attempt user creation
+            # Attempt to edit personal information
             try:
                 with self.app.session_scope() as session:
                     self._update_person_info(session, data)
@@ -71,6 +74,7 @@ class EditPersonalInformationPage(BasePage):
                         primary_email=person.primary_email,
                         primary_phone_number=person.primary_phone_number,
                         primary_home_address=person.primary_home_address,
+                        profile_id=self.app.current_person.profile_id,
                     )
                     self.print_success("Personal information edited successfully.")
                     time.sleep(2)
@@ -114,8 +118,11 @@ class EditPersonalInformationPage(BasePage):
                 FieldKey.DATE_OF_BIRTH.value,
                 TextInput(
                     self.app,
-                    f"{FieldKey.DATE_OF_BIRTH.value} (YYYY-MM-DD)",
-                    validators=validate_date,
+                    f"{FieldKey.DATE_OF_BIRTH.value} [YYYY-MM-DD]",
+                    validators=[
+                        validate_date,
+                        lambda x: validate_date_relation(x, date.today(), operator.lt),
+                    ],
                 ),
                 InputResult(
                     value=person.date_of_birth,

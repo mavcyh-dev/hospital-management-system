@@ -71,7 +71,4 @@ class BaseService(Generic[T]):
 
     def delete_by_id(self, session: Session, id: int) -> None:
         """Delete an entity by ID."""
-        entity = self.get_by_id(session, id)
-        if not entity:
-            raise ValueError(f"Entity with id {id} not found")
-        self.delete(session, entity)
+        self.repo.delete_by_id(session, id)

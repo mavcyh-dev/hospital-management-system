@@ -4,7 +4,7 @@ from prompt_toolkit.formatted_text import FormattedText
 from rich.console import Console
 from app.ui.input_result import InputResult
 from app.ui.inputs.base_input import BaseInput
-from app.ui.utils import prompt_choice
+from app.ui.utils import prompt_choice, KeyAction
 
 T = TypeVar("T")
 
@@ -47,10 +47,12 @@ class MenuForm:
                 options=options,
                 default=self.current_key,
                 exitable=True,
+                clearable=False,
+                scrollable=False,
                 show_frame=True,
             )
 
-            if selected is None:
+            if selected is KeyAction.BACK:
                 return None
 
             if selected == self.SUBMIT_OPTION_KEY:
@@ -158,11 +160,19 @@ class MenuForm:
             default=field.input_result,
             consumed=consumed_field.input_result if consumed_field else None,
         )
-        if result.value is None:
-            return
+        if result in (KeyAction.LEFT, KeyAction.RIGHT):
+            raise ValueError("Scrolling not allowed for menu form inputs!")
+
+        match result:
+            case KeyAction.BACK:
+                return None
+            case KeyAction.CLEAR:
+                field.input_result = InputResult(value=None)
 
         if result.value != field.input_result.value:
             self._propagate_consumers(field.key)
+        if result == KeyAction.CLEAR:
+            return None
 
         field.input_result.value = result.value
         field.input_result.display_value = result.display_value

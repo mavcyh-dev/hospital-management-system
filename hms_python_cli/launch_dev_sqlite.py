@@ -1,50 +1,62 @@
 import traceback
+import sys
 from pathlib import Path
 from app.core.app import App, Repos, Services
 from app.database.engine import SQLiteDatabase
-from app.database.seed.seed_all import seed_all
+from app.database.seed import seed_all
 
-from app.repositories.user_repository import UserRepository
-from app.repositories.person_repository import PersonRepository
-from app.repositories.patient_profile_repository import PatientProfileRepository
-from app.repositories.doctor_profile_repository import DoctorProfileRepository
-from app.repositories.appointment_repository import AppointmentRepository
-from app.repositories.prescription_repository import PrescriptionRepository
-from app.repositories.medication_repository import MedicationRepository
+from app.repositories import (
+    BaseRepository,
+    UserRepository,
+    PersonRepository,
+    PatientProfileRepository,
+    DoctorProfileRepository,
+    AppointmentRequestRepository,
+    AppointmentRepository,
+    PrescriptionRepository,
+)
 
-from app.services.security_service import SecurityService
-from app.services.user_service import UserService
-from app.services.person_service import PersonService
-from app.services.patient_service import PatientService
-from app.services.doctor_service import DoctorService
-from app.services.appointment_service import AppointmentService
+from app.services import (
+    SecurityService,
+    UserService,
+    PersonService,
+    PatientService,
+    DoctorService,
+    AppointmentService,
+)
+
+from app.database.models import Profile, Medication
+
+DB_PATH = (Path(sys.argv[0]).parent / "dev.db").resolve()
 
 
 def main():
     app: App
 
     try:
-        db_path = "dev.db"
+        if DB_PATH.exists():
+            DB_PATH.unlink()
 
-        if Path(db_path).exists():
-            Path(db_path).unlink()
-
-        db = SQLiteDatabase(db_path=db_path)
+        db = SQLiteDatabase(db_path=DB_PATH)
 
         # Repositories
         user_repo = UserRepository()
         person_repo = PersonRepository()
+        profile_repo = BaseRepository(Profile)
         patient_profile_repo = PatientProfileRepository()
         doctor_profile_repo = DoctorProfileRepository()
+        appointment_request = AppointmentRequestRepository()
         appointment_repo = AppointmentRepository()
         prescription_repo = PrescriptionRepository()
-        medication_repo = MedicationRepository()
+        medication_repo = BaseRepository(Medication)
 
         repos = Repos(
             user=user_repo,
             person=person_repo,
+            profile=profile_repo,
             patient_profile=patient_profile_repo,
             doctor_profile=doctor_profile_repo,
+            appointment_request=appointment_request,
             appointment=appointment_repo,
             prescription=prescription_repo,
             medication=medication_repo,
@@ -67,7 +79,14 @@ def main():
             user_repo=user_repo,
             person_repo=person_repo,
         )
-        appointment_service = AppointmentService()
+        appointment_service = AppointmentService(
+            appointment_repo=appointment_repo,
+            appointment_request_repo=appointment_request,
+            patient_profile_repo=patient_profile_repo,
+            doctor_profile_repo=doctor_profile_repo,
+            user_repo=user_repo,
+            person_repo=person_repo,
+        )
 
         services = Services(
             security=security_service,
@@ -78,13 +97,14 @@ def main():
             appointment=appointment_service,
         )
 
-        seed_all(db, services)
+        seed_all(db, repos, services)
 
         app = App(db=db, repos=repos, services=services)
 
     except Exception as e:
         print(f"Unhandled exception during app startup: {e}")
         traceback.print_exc()
+        input("Press ENTER to exit.")
         return
 
     app.run()

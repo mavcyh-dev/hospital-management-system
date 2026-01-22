@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 
-from rich.console import Console
-
 from app.core.app import App
 from app.ui.input_result import InputResult
+from app.ui.utils import KeyAction
 
 
 class BaseInput(ABC):
@@ -16,7 +15,7 @@ class BaseInput(ABC):
     @abstractmethod
     def prompt(
         self, default: InputResult | None, consumed: InputResult | None
-    ) -> InputResult:
+    ) -> InputResult | KeyAction:
         """Prompt the user for input and return an InputResult.
         Must return:
             value: the underlying value

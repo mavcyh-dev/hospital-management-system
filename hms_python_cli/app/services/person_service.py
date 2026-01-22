@@ -1,17 +1,13 @@
 from datetime import datetime, date
 from sqlalchemy.orm import Session
 
-from app.database.models import User, Person
+from app.database.models import Person
 from app.repositories.user_repository import UserRepository
 from app.repositories.person_repository import PersonRepository
 from app.services.base_service import BaseService
-from app.services.security_service import SecurityService
-from app.lookups.enums import ProfileTypeEnum, SexEnum
 
 
 class PersonService(BaseService[Person]):
-    """Handles business logic related to persons."""
-
     def __init__(
         self,
         person_repo: PersonRepository,
@@ -22,20 +18,12 @@ class PersonService(BaseService[Person]):
         self.user_repo = user_repo
 
     # -------------------------------------------------------------------------
-    # READ
+    # CREATE to be handled by UserService
     # -------------------------------------------------------------------------
 
-    def has_profile(
-        self,
-        session: Session,
-        person_id: int,
-        profile_type: ProfileTypeEnum,
-    ) -> bool:
-        """Check if user has a specific profile type."""
-        person = self.person_repo.get(session, person_id)
-        if not person:
-            raise ValueError(f"Person with id {person_id} not found")
-        return any(pt.profile_type_id == profile_type.value for pt in person.profiles)
+    # -------------------------------------------------------------------------
+    # READ
+    # -------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------
     # UPDATE

@@ -10,8 +10,6 @@ from app.lookups.enums import ProfileTypeEnum, SexEnum
 
 
 class UserService(BaseService[User]):
-    """Handles business logic related to users."""
-
     def __init__(
         self,
         user_repo: UserRepository,
@@ -26,7 +24,7 @@ class UserService(BaseService[User]):
     # -------------------------------------------------------------------------
     # CREATE
     # -------------------------------------------------------------------------
-    def create_user(
+    def create_user_and_person(
         self,
         session: Session,
         username: str,
@@ -60,7 +58,6 @@ class UserService(BaseService[User]):
             person_id=person.person_id,
             username=username,
             password_hash=self.security_service.hash_password(plain_password),
-            created_datetime=datetime.now(),
         )
 
         return self.user_repo.add(session, user)
@@ -68,48 +65,21 @@ class UserService(BaseService[User]):
     # -------------------------------------------------------------------------
     # READ
     # -------------------------------------------------------------------------
-    def exists_by_username(self, session: Session, username: str) -> bool:
-        """Check if a username already exists."""
-        return self.user_repo.exists_by_username(session, username)
 
-    def has_profile_type(
-        self,
-        session: Session,
-        user_id: int,
-        profile_type: ProfileTypeEnum,
-    ) -> bool:
-        """Check if user has a specific profile type."""
-        user = self.user_repo.get_with_person(session, user_id)
-        if not user:
-            raise ValueError(f"User '{user_id}' does not exist")
+    # def has_profile_type(
+    #     self,
+    #     session: Session,
+    #     user_id: int,
+    #     profile_type: ProfileTypeEnum,
+    # ) -> bool:
+    #     """Check if user has a specific profile type."""
+    #     user = self.user_repo.get_with_person(session, user_id)
+    #     if not user:
+    #         raise ValueError(f"User '{user_id}' does not exist")
 
-        return self.person_repo.exists_by_profile_type(
-            session, user.person_id, profile_type
-        )
-
-    def get_with_person(
-        self,
-        session: Session,
-        user_id: int,
-    ) -> User | None:
-        """Retrieve user with person details eagerly loaded."""
-        return self.user_repo.get_with_person(session, user_id)
-
-    def get_by_username(
-        self,
-        session: Session,
-        username: str,
-    ) -> User | None:
-        """Retrieve user by username."""
-        return self.user_repo.get_by_username(session, username)
-
-    def get_by_username_with_person(
-        self,
-        session: Session,
-        username: str,
-    ) -> User | None:
-        """Retrieve user by username with person details eagerly loaded."""
-        return self.user_repo.get_by_username_with_person(session, username)
+    #     return self.person_repo.exists_by_profile_type(
+    #         session, user.person_id, profile_type
+    #     )
 
     def validate_password(
         self,
@@ -141,7 +111,7 @@ class UserService(BaseService[User]):
         return self.user_repo.update(session, user)
 
     # -------------------------------------------------------------------------
-    # DELETE
+    # DELETE / DEACTIVATE
     # -------------------------------------------------------------------------
     def delete_user(self, session: Session, user_id: int) -> None:
         """Delete user and associated person record."""

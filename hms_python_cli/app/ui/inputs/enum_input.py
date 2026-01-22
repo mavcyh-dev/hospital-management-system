@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.input_result import InputResult
-from app.ui.utils import prompt_choice
+from app.ui.utils import prompt_choice, KeyAction
 from app.lookups.enums import BaseEnum
 
 E = TypeVar("E", bound="BaseEnum")
@@ -26,7 +26,7 @@ class EnumInput(BaseInput, Generic[E]):
 
     def prompt(
         self, default: InputResult | None = None, consumed: InputResult | None = None
-    ) -> InputResult:
+    ) -> InputResult | KeyAction:
         options = [(enum, enum.display) for enum in self.allowed]
 
         # Determine default key if provided
@@ -44,7 +44,12 @@ class EnumInput(BaseInput, Generic[E]):
             options=options,
             default=default_enum,
             exitable=True,
+            clearable=True,
+            scrollable=False,
         )
+
+        if isinstance(selected, KeyAction):
+            return selected
 
         return InputResult(
             value=selected.value if selected is not None else None,

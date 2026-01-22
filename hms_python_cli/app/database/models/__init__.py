@@ -15,7 +15,7 @@ from .appointments import (
     AppointmentStatus,
     Appointment,
 )
-from .medication import Medication, Prescription, PrescriptionItem
+from .prescription import Medication, Prescription, PrescriptionItem
 
 __all__ = [
     "Base",

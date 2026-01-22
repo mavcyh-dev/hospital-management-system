@@ -7,7 +7,7 @@ from rich.panel import Panel
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.input_result import InputResult
-from app.ui.utils import prompt_choice, prompt_text
+from app.ui.utils import prompt_choice, prompt_text, KeyAction
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,7 @@ class FilterInput(BaseInput):
             concat_value_strings = ", ".join(value_strings_list)
 
             filtered = self.items
-            if len(self.items) > 11:
+            if len(self.items) > 20:
                 self.console.print(
                     Panel(
                         concat_value_strings,
@@ -53,9 +53,11 @@ class FilterInput(BaseInput):
                     )
                 )
                 raw = prompt_text(
-                    "Filter by word search (press Enter to select from all)"
+                    "Filter by word search (press Enter to select from all)",
+                    exitable=True,
+                    clearable=True,
                 )
-                if raw is None:
+                if isinstance(raw, KeyAction):
                     return InputResult(value=None)
                 query = raw.strip().lower()
 
@@ -83,6 +85,8 @@ class FilterInput(BaseInput):
                         message="Match found. Select?",
                         options=[("Y", "Yes"), ("N", "No")],
                         exitable=True,
+                        clearable=True,
+                        scrollable=False,
                     )
 
                     if result is None:
@@ -104,9 +108,11 @@ class FilterInput(BaseInput):
                     for item in filtered
                 ],
                 exitable=True,
+                clearable=True,
+                scrollable=False,
             )
 
-            if selected is None:
-                return InputResult(None, None)
+            if isinstance(selected, KeyAction):
+                return selected
 
             return InputResult(selected.value, selected.display)

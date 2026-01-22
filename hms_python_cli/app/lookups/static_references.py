@@ -6,43 +6,20 @@ from app.lookups.enums import (
     AppointmentStatusEnum,
 )
 
-PROFILE_TYPE_ENUM_TO_NAME = {
-    ProfileTypeEnum.PATIENT: "PATIENT",
-    ProfileTypeEnum.DOCTOR: "DOCTOR",
-    ProfileTypeEnum.RECEPTIONIST: "RECEPTIONIST",
-    ProfileTypeEnum.ADMIN: "ADMIN"
-}
-
 PROFILE_TYPES = [
-    ProfileType(profile_type_id=ProfileTypeEnum.PATIENT, name="PATIENT"),
-    ProfileType(profile_type_id=ProfileTypeEnum.DOCTOR, name="DOCTOR"),
-    ProfileType(profile_type_id=ProfileTypeEnum.RECEPTIONIST, name="RECEPTIONIST"),
-    ProfileType(profile_type_id=ProfileTypeEnum.ADMIN, name="ADMIN"),
+    ProfileType(profile_type_id=enum, name=enum.display.capitalize())
+    for enum in ProfileTypeEnum
 ]
+
 
 APPOINTMENT_REQUEST_STATUSES = [
     AppointmentRequestStatus(
-        appointment_request_status_id=AppointmentRequestStatusEnum.PENDING,
-        name="PENDING",
-    ),
-    AppointmentRequestStatus(
-        appointment_request_status_id=AppointmentRequestStatusEnum.APPROVED,
-        name="APPROVED",
-    ),
-    AppointmentRequestStatus(
-        appointment_request_status_id=AppointmentRequestStatusEnum.REJECTED,
-        name="REJECTED",
-    ),
+        appointment_request_status_id=enum, name=enum.display.capitalize()
+    )
+    for enum in AppointmentRequestStatusEnum
 ]
 
 APPOINTMENT_STATUSES = [
-    AppointmentStatus(
-        appointment_status_id=AppointmentStatusEnum.SCHEDULED, name="SCHEDULED"
-    ),
-    AppointmentStatus(
-        appointment_status_id=AppointmentStatusEnum.COMPLETED, name="COMPLETED"
-    ),
-    AppointmentStatus(
-        appointment_status_id=AppointmentStatusEnum.CANCELLED, name="CANCELLED"
-    ),
+    AppointmentStatus(appointment_status_id=enum, name=enum.display.capitalize())
+    for enum in AppointmentStatusEnum
 ]

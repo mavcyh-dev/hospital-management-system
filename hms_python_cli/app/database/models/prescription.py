@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional, List
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Boolean, Index
+from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Boolean, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
@@ -47,7 +47,7 @@ class Prescription(Base):
     appointment_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("appointment.appointment_id")
     )
-    created_datetime: Mapped[datetime] = mapped_column(DateTime)
+    created_datetime: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     # Relationships
     patient: Mapped["PatientProfile"] = relationship(

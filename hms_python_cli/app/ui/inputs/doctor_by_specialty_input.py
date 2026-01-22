@@ -2,16 +2,16 @@ from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.inputs.filter_input import FilterInput, FilterItem
 from app.ui.input_result import InputResult
-from app.ui.utils import prompt_choice, prompt_text
+from app.ui.utils import KeyAction
 
 
 class DoctorBySpecialtyInput(BaseInput):
-    def __init__(self, app: App, label: str):
+    def __init__(self, app: App):
         super().__init__(app)
 
     def prompt(
         self, default: InputResult | None = None, consumed: InputResult | None = None
-    ):
+    ) -> InputResult | KeyAction:
         """
         A doctor selector that accepts a specialty for filtering purposes.
 
@@ -20,6 +20,8 @@ class DoctorBySpecialtyInput(BaseInput):
         """
 
         if consumed is None:
+            self.console.print("No specialty selected.")
+            input("Press ENTER to continue...")
             return InputResult(value=None)
 
         with self.app.session_scope() as session:
@@ -34,17 +36,22 @@ class DoctorBySpecialtyInput(BaseInput):
                 input("Press ENTER to continue...")
                 return InputResult(value=None)
 
-            filter_items = []
+            filter_items: list[FilterItem] = []
             for doctor in doctors:
+                doctor_profile_id = doctor.profile_id
                 person = doctor.profile.person
-                first_name = person.first_name
-                last_name = person.last_name
-                full_name = f"{first_name} {last_name}"
+                full_name = person.full_name
                 phone_number = doctor.office_phone_number
 
                 filter_items.append(
-                    FilterItem(value=doctor, filter_values=[full_name, phone_number])
+                    FilterItem(
+                        value=doctor_profile_id, filter_values=[full_name, phone_number]
+                    )
                 )
+
+            filter_items.sort(
+                key=lambda item: item.filter_values[0] if item.filter_values[0] else ""
+            )
 
         filter_input = FilterInput(
             self.app, f"Doctors in {consumed.display_value}", filter_items

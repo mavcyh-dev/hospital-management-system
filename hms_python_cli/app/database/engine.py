@@ -76,9 +76,9 @@ class MySQLDatabase(Database):
 
 
 class SQLiteDatabase(Database):
-    def __init__(self, db_path: str = "dev.db"):
+    def __init__(self, db_path):
         super().__init__()
-        self.db_path = Path(db_path).resolve()
+        self.db_path = db_path
         self._initialize()
         Base.metadata.create_all(bind=self.engine)
 

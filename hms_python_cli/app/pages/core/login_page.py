@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from enum import StrEnum
 
 from app.ui.utils import app_logo
-from app.pages.base_page import BasePage
+from app.pages.core.base_page import BasePage
 from app.ui.menu_form import MenuForm, MenuField
 from app.ui.inputs.text_input import TextInput
 from app.validators import validate_profile_exists_for_username
@@ -51,13 +51,10 @@ class LoginPage(BasePage):
             # Attempt user login
             try:
                 with self.app.session_scope() as session:
-                    user = self.app.services.user.get_by_username_with_person(
-                        session, data[FieldKey.USERNAME.value]
-                    )
+                    username = data[FieldKey.USERNAME.value]
+                    user = self.app.repos.user.get_by_username(session, username)
                     if not user:
-                        raise Exception(
-                            f"Username {data[FieldKey.USERNAME.value]} does not exist!"
-                        )
+                        raise ValueError(f"Username {username} does not exist!")
 
                     if not self.app.services.user.validate_password(
                         session, user.user_id, data[FieldKey.PASSWORD.value]
@@ -67,7 +64,15 @@ class LoginPage(BasePage):
                         continue
 
                     person = user.person
-
+                    profile = self.app.repos.profile.get_first_by(
+                        session,
+                        person_id=person.person_id,
+                        profile_type_id=self.profile_type.value,
+                    )
+                    if not profile:
+                        raise ValueError(
+                            f"{self.profile_type} profile does not exist for username {username}!"
+                        )
                     self.app.login(
                         current_user=CurrentUserDTO(
                             user.user_id,
@@ -83,6 +88,7 @@ class LoginPage(BasePage):
                             primary_email=person.primary_email,
                             primary_phone_number=person.primary_phone_number,
                             primary_home_address=person.primary_home_address,
+                            profile_id=profile.profile_id,
                         ),
                         current_profile_type=self.profile_type,
                     )

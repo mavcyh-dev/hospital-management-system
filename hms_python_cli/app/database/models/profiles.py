@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Boolean,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from .user_person import Person
     from .specialty import Specialty
     from .appointments import Appointment, AppointmentRequest
-    from .medication import Prescription
+    from .prescription import Prescription
 
 
 class ProfileType(Base):
@@ -50,7 +51,7 @@ class Profile(Base):
     profile_type_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("profile_type.profile_type_id")
     )
-    created_datetime: Mapped[datetime] = mapped_column(DateTime)
+    created_datetime: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     is_in_service: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
@@ -118,6 +119,10 @@ class DoctorProfile(Base):
         "AppointmentRequest", back_populates="preferred_doctor"
     )
 
+    @property
+    def full_name(self):
+        return f"{self.profile.person.full_name}"
+
 
 class PatientProfile(Base):
     """Patient-specific profile details"""
@@ -145,6 +150,10 @@ class PatientProfile(Base):
         "AppointmentRequest", back_populates="patient"
     )
 
+    @property
+    def full_name(self):
+        return f"{self.profile.person.full_name}"
+
 
 class ReceptionistProfile(Base):
     """Receptionist-specific profile details"""
@@ -160,6 +169,10 @@ class ReceptionistProfile(Base):
         "Profile", back_populates="receptionist_profile"
     )
 
+    @property
+    def full_name(self):
+        return f"{self.profile.person.full_name}"
+
 
 class AdminProfile(Base):
     """Admin-specific profile details"""
@@ -172,3 +185,7 @@ class AdminProfile(Base):
 
     # Relationships
     profile: Mapped["Profile"] = relationship("Profile", back_populates="admin_profile")
+
+    @property
+    def full_name(self):
+        return f"{self.profile.person.full_name}"

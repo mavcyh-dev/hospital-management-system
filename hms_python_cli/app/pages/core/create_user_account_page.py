@@ -1,7 +1,8 @@
 from typing import Any
-
 from enum import Enum
 import time
+from datetime import date
+import operator
 from sqlalchemy.orm import Session
 
 from app.database.models.user_person import User
@@ -9,13 +10,14 @@ from app.database.models.user_person import User
 from app.ui.menu_form import MenuForm, MenuField
 from app.ui.inputs.text_input import TextInput
 from app.ui.inputs.enum_input import EnumInput
-from app.pages.base_page import BasePage
+from app.pages.core.base_page import BasePage
 from app.lookups.enums import SexEnum
 from app.validators import (
     validate_password,
     validate_date,
     validate_email,
     validate_phone_number,
+    validate_date_relation,
 )
 
 
@@ -43,7 +45,7 @@ class CreateUserAccountPage(BasePage):
 
         while True:
             menu_form = MenuForm(
-                self.fields, "Create New Account", submit_label="Create"
+                self.fields, "Create User Account", submit_label="Create"
             )
             data = menu_form.run(self.console)
 
@@ -56,7 +58,7 @@ class CreateUserAccountPage(BasePage):
                     self._create_user_with_patient_profile(session, data)
 
                     self.print_success(
-                        "Account created successfully! Patient profile automatically added."
+                        "User account created successfully! Patient profile automatically added."
                     )
                     time.sleep(2)
                     return
@@ -107,8 +109,11 @@ class CreateUserAccountPage(BasePage):
                 FieldKey.DATE_OF_BIRTH.value,
                 TextInput(
                     self.app,
-                    f"{FieldKey.DATE_OF_BIRTH.value} (YYYY-MM-DD)",
-                    validators=validate_date,
+                    f"{FieldKey.DATE_OF_BIRTH.value} [YYYY-MM-DD]",
+                    validators=[
+                        validate_date,
+                        lambda x: validate_date_relation(x, date.today(), operator.lt),
+                    ],
                 ),
             ),
             MenuField(
@@ -135,7 +140,7 @@ class CreateUserAccountPage(BasePage):
     def _create_user_with_patient_profile(
         self, session: Session, data: dict[str, Any]
     ) -> User:
-        user = self.app.services.user.create_user(
+        user = self.app.services.user.create_user_and_person(
             session=session,
             username=data[FieldKey.USERNAME.value],
             plain_password=data[FieldKey.PASSWORD.value],

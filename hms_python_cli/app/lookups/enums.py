@@ -24,10 +24,12 @@ class ProfileTypeEnum(BaseEnum):
 class AppointmentRequestStatusEnum(BaseEnum):
     PENDING = 1
     APPROVED = 2
-    REJECTED = 3
+    CANCELLED = 3
+    REJECTED = 4
 
 
 class AppointmentStatusEnum(BaseEnum):
     SCHEDULED = 1
     COMPLETED = 2
     CANCELLED = 3
+    MISSED = 4

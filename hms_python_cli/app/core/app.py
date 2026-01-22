@@ -8,37 +8,44 @@ from sqlalchemy.orm import Session
 from rich.console import Console
 
 from app.database.engine import Database
-from app.pages.base_page import BasePage
+from app.pages.core.base_page import BasePage
 from app.pages.core.app_start_page import AppStartPage
 
-from app.database.models import Specialty
+from app.database.models import Profile, Specialty, Medication
 from app.lookups.enums import ProfileTypeEnum, SexEnum
 
-from app.repositories.user_repository import UserRepository
-from app.repositories.person_repository import PersonRepository
-from app.repositories.patient_profile_repository import PatientProfileRepository
-from app.repositories.doctor_profile_repository import DoctorProfileRepository
-from app.repositories.appointment_repository import AppointmentRepository
-from app.repositories.prescription_repository import PrescriptionRepository
-from app.repositories.medication_repository import MedicationRepository
+from app.repositories import (
+    BaseRepository,
+    UserRepository,
+    PersonRepository,
+    PatientProfileRepository,
+    DoctorProfileRepository,
+    AppointmentRequestRepository,
+    AppointmentRepository,
+    PrescriptionRepository,
+)
 
-from app.services.security_service import SecurityService
-from app.services.user_service import UserService
-from app.services.person_service import PersonService
-from app.services.patient_service import PatientService
-from app.services.doctor_service import DoctorService
-from app.services.appointment_service import AppointmentService
+from app.services import (
+    SecurityService,
+    UserService,
+    PersonService,
+    PatientService,
+    DoctorService,
+    AppointmentService,
+)
 
 
 @dataclass
 class Repos:
     user: UserRepository
     person: PersonRepository
+    profile: BaseRepository[Profile]
     patient_profile: PatientProfileRepository
     doctor_profile: DoctorProfileRepository
+    appointment_request: AppointmentRequestRepository
     appointment: AppointmentRepository
     prescription: PrescriptionRepository
-    medication: MedicationRepository
+    medication: BaseRepository[Medication]
 
 
 @dataclass
@@ -68,6 +75,7 @@ class CurrentPersonDTO:
     primary_email: str
     primary_phone_number: str
     primary_home_address: str
+    profile_id: int
 
 
 @dataclass
@@ -83,8 +91,6 @@ class LookupCache:
         self.specialties = {s.specialty_id: s.name for s in specialties}
         self.specialties_by_name = {s.name: s.specialty_id for s in specialties}
 
-        print(f"✓ Loaded {len(self.specialties)} specialties into cache")
-
     def get_specialty_name(self, specialty_id: int) -> str | None:
         """Get specialty name by ID (from cache)"""
         return self.specialties.get(specialty_id)
@@ -96,10 +102,6 @@ class LookupCache:
     def get_all_specialties(self) -> list[tuple[int, str]]:
         """Get all specialties as [(id, name), ...] for UI display"""
         return sorted(self.specialties.items(), key=lambda x: x[1])
-
-    def reload(self, session: Session) -> None:
-        """Reload cache (after admin adds/updates specialties)"""
-        self.load_from_database(session)
 
 
 class App:

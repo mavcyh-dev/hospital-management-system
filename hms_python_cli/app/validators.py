@@ -1,12 +1,22 @@
 import re
-from datetime import datetime
+from datetime import datetime, date, time
 from sqlalchemy.orm import Session
 from typing import Callable, ContextManager
+import operator
 
 from app.ui.input_result import InputResult
 from app.services.user_service import UserService
 
 from app.lookups.enums import ProfileTypeEnum
+
+OP_DISPLAY = {
+    operator.gt: ">",
+    operator.ge: "≥",
+    operator.lt: "<",
+    operator.le: "≤",
+    operator.eq: "=",
+    operator.ne: "≠",
+}
 
 
 def validate_password(raw: str) -> InputResult:
@@ -39,6 +49,41 @@ def validate_date(raw: str) -> InputResult:
     return InputResult(value=raw, error="Invalid date format (expected YYYY-MM-DD)")
 
 
+def validate_date_relation(
+    value: date,
+    other: date,
+    op: Callable[[date, date], bool],
+) -> InputResult:
+    ok = op(value, other)
+
+    return InputResult(
+        value=value,
+        display_value=value.isoformat(),
+        error=None if ok else f"Date must be {OP_DISPLAY[op]} {other}",
+    )
+
+
+def validate_date_in_range(
+    value: date,
+    start: date,
+    end: date,
+    inclusive: bool,
+) -> InputResult:
+
+    if inclusive:
+        ok = start <= value <= end
+        display = f">= {start} and <= {end}"
+    else:
+        ok = start < value < end
+        display = f"> {start} and < {end}"
+
+    return InputResult(
+        value=value,
+        display_value=value.isoformat(),
+        error=None if ok else f"Date must be {display}",
+    )
+
+
 def validate_time(raw: str) -> InputResult:
     for fmt in ("%H:%M", "%H%M", "%H.%M"):
         try:
@@ -56,7 +101,7 @@ def validate_user_exists_for_username(
     inverse: bool | None = None,
 ) -> InputResult:
     with session_scope() as session:
-        exists = user_service.exists_by_username(session, raw)
+        exists = user_service.user_repo.exists_by_username(session, raw)
 
     if inverse:
         return InputResult(
@@ -75,10 +120,12 @@ def validate_profile_exists_for_username(
     profile_type: ProfileTypeEnum,
 ) -> InputResult:
     with session_scope() as session:
-        user = user_service.get_by_username(session, username=raw)
+        user = user_service.user_repo.get_by_username(session, username=raw)
         if not user:
             return InputResult(value=raw, error="Username does not exist")
-        elif user_service.has_profile_type(session, user.user_id, profile_type):
+        elif user_service.person_repo.exists_by_profile_type(
+            session, user.person_id, profile_type
+        ):
             return InputResult(value=raw)
         else:
             return InputResult(value=raw, error="Profile type not found for user")

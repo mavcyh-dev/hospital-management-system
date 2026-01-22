@@ -1,14 +1,14 @@
 from collections.abc import Callable
-from typing import Sequence
+from typing import Sequence, Any
 
 
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.input_result import InputResult
-from app.ui.utils import prompt_text
+from app.ui.utils import prompt_text, KeyAction
 
 
-Validator = Callable[[str], InputResult]
+Validator = Callable[[Any], InputResult]
 
 
 class TextInput(BaseInput):
@@ -37,7 +37,7 @@ class TextInput(BaseInput):
 
     def prompt(
         self, default: InputResult | None = None, consumed: InputResult | None = None
-    ) -> InputResult:
+    ) -> InputResult | KeyAction:
         if self.is_password or default is None:
             default_string = ""
         elif default.display_value is not None:
@@ -47,32 +47,36 @@ class TextInput(BaseInput):
         else:
             default_string = ""
         raw = prompt_text(
-            self.label, is_password=self.is_password, default=default_string
+            self.label,
+            is_password=self.is_password,
+            default=default_string,
+            exitable=True,
+            clearable=True,
         )
 
-        if raw is None:
-            return InputResult(value=None)
+        if isinstance(raw, KeyAction):
+            return raw
 
         if not self.is_password:
             raw = raw.strip()
+        if len(raw) == 0:
+            return InputResult(value=None)
 
         # Run validators in order
-        validated_result: InputResult | None = None
+        last_result: InputResult | None = None
         for validator in self.validators:
-            result = validator(raw)
-            if result.error is not None:
+            last_result = validator(raw if last_result is None else last_result.value)
+            if last_result.error is not None:
                 # Stop on first error
-                return result
-            raw = result.value
-            validated_result = result
+                break
 
         # Perform password masking with "*"
         if self.is_password:
-            if validated_result is not None:
+            if last_result is not None:
                 return InputResult(
-                    value=validated_result.value,
-                    display_value=len(validated_result.value) * "*",
-                    error=validated_result.error,
+                    value=last_result.value,
+                    display_value=len(last_result.value) * "*",
+                    error=last_result.error,
                 )
             else:
                 return InputResult(
@@ -81,6 +85,4 @@ class TextInput(BaseInput):
                 )
 
         # Return result from last validator, or raw if no validators
-        return (
-            validated_result if validated_result is not None else InputResult(value=raw)
-        )
+        return last_result if last_result is not None else InputResult(value=raw)

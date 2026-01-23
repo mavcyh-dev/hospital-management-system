@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
+
 from rich.console import Console
 
 if TYPE_CHECKING:
@@ -43,7 +44,7 @@ class BasePage(ABC):
         last_name = c_person.last_name
         profile_type_name = app.current_profile_type.display
         self.console.print(
-            f"[bold blue]NYP HMS[/] | User [italic]{username}[/] as {profile_type_name} | {first_name} {last_name}"
+            f"[bold blue]NYP HMS[/] | User [italic]{username}[/] as {profile_type_name} | {first_name} {last_name}\n"
         )
 
     def clear(self):

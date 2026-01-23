@@ -1,14 +1,15 @@
 from typing import Sequence
 
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.orm.interfaces import LoaderOption
-from sqlalchemy import select
 from app.database.models import (
-    PatientProfile,
-    Profile,
     AppointmentRequest,
     DoctorProfile,
+    PatientProfile,
+    Profile,
 )
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm.interfaces import LoaderOption
+
 from .base_repository import BaseRepository
 
 
@@ -74,7 +75,7 @@ class PatientProfileRepository(BaseRepository[PatientProfile]):
         stmt = (
             select(PatientProfile)
             .join(PatientProfile.profile)
-            .where(Profile.is_in_service == True)
+            .where(Profile.is_in_service)
             .options(*loaders)
         )
         return list(session.scalars(stmt))

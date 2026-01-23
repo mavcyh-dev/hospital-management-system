@@ -1,10 +1,10 @@
-from typing import Any, cast, TypeVar
 from dataclasses import dataclass, field
-from prompt_toolkit.formatted_text import FormattedText
-from rich.console import Console
-from app.ui.input_result import InputResult
+from typing import Any, Literal, TypeVar, cast
+
 from app.ui.inputs.base_input import BaseInput
-from app.ui.utils import prompt_choice, KeyAction
+from app.ui.inputs.input_result import InputResult
+from app.ui.prompts import KeyAction, prompt_choice
+from prompt_toolkit.formatted_text import FormattedText
 
 T = TypeVar("T")
 
@@ -37,34 +37,32 @@ class MenuForm:
             default_selected_key if default_selected_key else fields[0].key
         )
 
-    def run(self, console: Console) -> dict[str, Any] | None:
+    def run(self) -> dict[str, Any] | Literal[KeyAction.BACK] | None:
         self.all_valid = self._all_valid()
-        while True:
-            console.clear()
-            options = self._generate_options()
-            selected = prompt_choice(
-                message=self.title,
-                options=options,
-                default=self.current_key,
-                exitable=True,
-                clearable=False,
-                scrollable=False,
-                show_frame=True,
-            )
+        options = self._generate_options()
+        selected = prompt_choice(
+            message=self.title,
+            options=options,
+            default=self.current_key,
+            exitable=True,
+            clearable=False,
+            scrollable=False,
+            show_frame=True,
+        )
 
-            if selected is KeyAction.BACK:
-                return None
+        if selected is KeyAction.BACK:
+            return KeyAction.BACK
 
-            if selected == self.SUBMIT_OPTION_KEY:
-                if self._all_valid():
-                    return {
-                        field.key: field.input_result.value for field in self.fields
-                    }
-                continue
+        if selected == self.SUBMIT_OPTION_KEY:
+            if self._all_valid():
+                # returns data
+                return {field.key: field.input_result.value for field in self.fields}
+            return
 
-            self.current_key = selected
-            field = self._find_field(selected)
-            self._edit_field(field)
+        self.current_key = selected
+        field = self._find_field(selected)
+        self._edit_field(field)
+        return
 
     def _find_field(self, key: str) -> MenuField:
         return next(i for i in self.fields if i.key == key)
@@ -92,7 +90,7 @@ class MenuForm:
                 icon, cls = "?", "yellow"
 
             tokens.append((f"class:{cls}", f"[{icon}] "))
-            tokens.append((f"class:red", f"{"* " if field.required else "  "}"))
+            tokens.append(("class:red", f"{"* " if field.required else "  "}"))
             tokens.append(("class:field", f"{field.label}: "))
 
             if field.input_result.display_value is not None:

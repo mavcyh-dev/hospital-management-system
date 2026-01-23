@@ -1,15 +1,12 @@
-from enum import Enum
 import math
 
+from app.database.models import AppointmentRequest
+from app.lookups.enums import AppointmentRequestStatusEnum
+from app.pages.core.base_page import BasePage
+from app.repositories.appointment_request_repository import AppointmentRequestLoad
+from app.ui.prompts import KeyAction, prompt_choice, prompt_continue_message
 from rich.table import Table
 from rich.text import Text
-
-from app.pages.core.base_page import BasePage
-from app.ui.utils import prompt_choice, KeyAction
-
-from app.database.models import AppointmentRequest
-from app.repositories.appointment_request_repository import AppointmentRequestLoad
-from app.lookups.enums import AppointmentRequestStatusEnum
 
 
 class PatientViewAllAppointmentRequestsPage(BasePage):
@@ -30,14 +27,13 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
         while True:
             self.clear()
             self.display_user_header(self.app)
-            self.console.print("")
 
             if len(self.appointment_requests) == 0:
-                print("No appointment requests.")
-                input("Press ENTER to continue...")
+                prompt_continue_message(self.console, "No appointment requests.")
                 return
 
             self._display_all_appointment_requests()
+
             self.console.print("")
 
             visible, start_index = self._get_visible_window()
@@ -59,11 +55,13 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
             if self.selected_choice == KeyAction.BACK:
                 return
             elif self.selected_choice == KeyAction.LEFT:
-                if self.scroll_offset > 0:
-                    self.scroll_offset -= 1
+                self.scroll_offset = (self.scroll_offset - 1) % (
+                    self.max_scroll_offset + 1
+                )
             elif self.selected_choice == KeyAction.RIGHT:
-                if self.scroll_offset < self.max_scroll_offset:
-                    self.scroll_offset += 1
+                self.scroll_offset = (self.scroll_offset + 1) % (
+                    self.max_scroll_offset + 1
+                )
             else:
                 choice_id = self.selected_choice
                 return PatientViewAppointmentRequestPage(self.app, choice_id)
@@ -77,7 +75,7 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
         visible, start_index = self._get_visible_window()
 
         title = f"Your Appointment Requests ({start_index+1}-{start_index+len(visible)}/{len(self.appointment_requests)})"
-        table = Table(title=title, title_justify="left")
+        table = Table(title=title, title_justify="left", show_lines=True)
         table.add_column("No.")
         table.add_column("Status")
         table.add_column("Created")
@@ -119,6 +117,7 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
                 self.app.repos.appointment_request.list_by_patient_profile_id(
                     session,
                     patient_profile_id,
+                    order_by_created_datetime_desc=True,
                     loaders=(
                         AppointmentRequestLoad.SPECIALTY,
                         AppointmentRequestLoad.PREFERRED_DOCTOR_WITH_PERSON,

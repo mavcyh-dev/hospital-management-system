@@ -1,26 +1,23 @@
+import operator
+from datetime import date
+from enum import Enum
 from typing import Any
 
-from enum import Enum
-import time
-from datetime import date
-import operator
-from sqlalchemy.orm import Session
-
-from app.database.models.user_person import User
-from app.core.app import CurrentUserDTO, CurrentPersonDTO
-
-from app.ui.menu_form import MenuForm, MenuField
-from app.ui.input_result import InputResult
-from app.ui.inputs.text_input import TextInput
-from app.ui.inputs.enum_input import EnumInput
-from app.pages.core.base_page import BasePage
+from app.core.app import CurrentPersonDTO
 from app.lookups.enums import SexEnum
+from app.pages.core.base_page import BasePage
+from app.ui.inputs.enum_input import EnumInput
+from app.ui.inputs.input_result import InputResult
+from app.ui.inputs.text_input import TextInput
+from app.ui.menu_form import KeyAction, MenuField, MenuForm
+from app.ui.prompts import prompt_error, prompt_success
 from app.validators import (
     validate_date,
     validate_date_relation,
     validate_email,
     validate_phone_number,
 )
+from sqlalchemy.orm import Session
 
 
 class FieldKey(Enum):
@@ -37,22 +34,23 @@ class EditPersonalInformationPage(BasePage):
     fields: list[MenuField] | None = None
 
     def run(self) -> BasePage | None:
-
-        self.clear()
-
         if self.fields is None:
             self.fields = self._init_fields()
+        menu_form = MenuForm(
+            self.fields,
+            title="Edit personal information",
+            submit_label="Edit",
+        )
 
         while True:
-            menu_form = MenuForm(
-                self.fields,
-                title="Edit personal information",
-                submit_label="Edit",
-            )
-            data = menu_form.run(self.console)
+            self.clear()
+            self.display_user_header(self.app)
+            data = menu_form.run()
 
             if data is None:
-                return None
+                continue
+            if data is KeyAction.BACK:
+                return
 
             # Attempt to edit personal information
             try:
@@ -76,13 +74,13 @@ class EditPersonalInformationPage(BasePage):
                         primary_home_address=person.primary_home_address,
                         profile_id=self.app.current_person.profile_id,
                     )
-                    self.print_success("Personal information edited successfully.")
-                    time.sleep(2)
+                    prompt_success(
+                        self.console, "Personal information edited successfully."
+                    )
                     continue
 
             except Exception as e:
-                self.print_error(f"Failed to create account: {e}")
-                input("Press Enter to continue...")
+                prompt_error(self.console, f"Failed to create account: {e}")
                 continue
 
     def _init_fields(self) -> list[MenuField]:

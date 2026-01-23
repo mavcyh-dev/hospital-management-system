@@ -13,6 +13,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
+from app.lookups.enums import ProfileTypeEnum
+
 if TYPE_CHECKING:
     from .user_person import Person
     from .specialty import Specialty
@@ -88,6 +90,10 @@ class Profile(Base):
     handled_appointment_requests: Mapped[List["AppointmentRequest"]] = relationship(
         "AppointmentRequest", back_populates="handled_by"
     )
+
+    @property
+    def type_enum(self):
+        return ProfileTypeEnum(self.profile_type_id)
 
 
 class DoctorProfile(Base):

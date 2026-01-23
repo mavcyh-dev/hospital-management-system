@@ -43,5 +43,3 @@ SPECIALTIES_REFERENCE = [
 ]
 
 SPECIALTIES = [Specialty(name=name) for name in SPECIALTIES_REFERENCE]
-
-SPECIALTIES_FROM_NAME_MAP = {s.name: s for s in SPECIALTIES}

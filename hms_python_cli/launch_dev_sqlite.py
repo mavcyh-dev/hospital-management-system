@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from app.core.app import App, Repos, Services
 from app.database.engine import SQLiteDatabase
-from app.database.seed import seed_all
+from app.database.seed import seed_development
 
 from app.repositories import (
     BaseRepository,
@@ -25,9 +25,16 @@ from app.services import (
     AppointmentService,
 )
 
-from app.database.models import Profile, Medication
+from app.database.models import (
+    Profile,
+    ReceptionistProfile,
+    AdminProfile,
+    Specialty,
+    Medication,
+)
 
 DB_PATH = (Path(sys.argv[0]).parent / "dev.db").resolve()
+SEEDING_NUMBER = 10
 
 
 def main():
@@ -45,6 +52,9 @@ def main():
         profile_repo = BaseRepository(Profile)
         patient_profile_repo = PatientProfileRepository()
         doctor_profile_repo = DoctorProfileRepository()
+        receptionist_profile_repo = BaseRepository(ReceptionistProfile)
+        admin_profile_repo = BaseRepository(AdminProfile)
+        specialty_repo = BaseRepository(Specialty)
         appointment_request = AppointmentRequestRepository()
         appointment_repo = AppointmentRepository()
         prescription_repo = PrescriptionRepository()
@@ -56,6 +66,9 @@ def main():
             profile=profile_repo,
             patient_profile=patient_profile_repo,
             doctor_profile=doctor_profile_repo,
+            receptionist_profile=receptionist_profile_repo,
+            admin_profile=admin_profile_repo,
+            specialty=specialty_repo,
             appointment_request=appointment_request,
             appointment=appointment_repo,
             prescription=prescription_repo,
@@ -72,6 +85,7 @@ def main():
         person_service = PersonService(person_repo=person_repo, user_repo=user_repo)
         patient_service = PatientService(
             patient_profile_repo=patient_profile_repo,
+            profile_repo=profile_repo,
             person_repo=person_repo,
         )
         doctor_service = DoctorService(
@@ -97,7 +111,7 @@ def main():
             appointment=appointment_service,
         )
 
-        seed_all(db, repos, services)
+        seed_development(db, repos, services, SEEDING_NUMBER)
 
         app = App(db=db, repos=repos, services=services)
 

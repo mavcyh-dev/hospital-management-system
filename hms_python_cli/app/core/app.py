@@ -2,7 +2,6 @@ import traceback
 from typing import Callable, ContextManager
 from dataclasses import dataclass, field
 from datetime import datetime, date
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from rich.console import Console
@@ -10,8 +9,15 @@ from rich.console import Console
 from app.database.engine import Database
 from app.pages.core.base_page import BasePage
 from app.pages.core.app_start_page import AppStartPage
+from app.ui.prompts import prompt_choice
 
-from app.database.models import Profile, Specialty, Medication
+from app.database.models import (
+    Profile,
+    ReceptionistProfile,
+    AdminProfile,
+    Specialty,
+    Medication,
+)
 from app.lookups.enums import ProfileTypeEnum, SexEnum
 
 from app.repositories import (
@@ -42,6 +48,9 @@ class Repos:
     profile: BaseRepository[Profile]
     patient_profile: PatientProfileRepository
     doctor_profile: DoctorProfileRepository
+    receptionist_profile: BaseRepository[ReceptionistProfile]
+    admin_profile: BaseRepository[AdminProfile]
+    specialty: BaseRepository[Specialty]
     appointment_request: AppointmentRequestRepository
     appointment: AppointmentRepository
     prescription: PrescriptionRepository
@@ -83,11 +92,11 @@ class LookupCache:
     specialties: dict[int, str] = field(default_factory=dict)
     specialties_by_name: dict[str, int] = field(default_factory=dict)
 
-    def load_from_database(self, session: Session) -> None:
+    def load_from_database(
+        self, session: Session, specialty_repo: BaseRepository[Specialty]
+    ) -> None:
         """Load specialties from database into cache"""
-        stmt = select(Specialty).where(Specialty.is_in_service == True)
-        specialties = session.scalars(stmt).all()
-
+        specialties = specialty_repo.get_all(session)
         self.specialties = {s.specialty_id: s.name for s in specialties}
         self.specialties_by_name = {s.name: s.specialty_id for s in specialties}
 
@@ -131,7 +140,7 @@ class App:
 
         self.lookup_cache = LookupCache()
         with self.session_scope() as session:
-            self.lookup_cache.load_from_database(session)
+            self.lookup_cache.load_from_database(session, self.repos.specialty)
 
         # Session state
         self.current_user = None

@@ -1,16 +1,15 @@
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from enum import StrEnum
-
-from app.ui.utils import app_logo
-from app.pages.core.base_page import BasePage
-from app.ui.menu_form import MenuForm, MenuField
-from app.ui.inputs.text_input import TextInput
-from app.validators import validate_profile_exists_for_username
-
+from app.core.app import CurrentPersonDTO, CurrentUserDTO
+from app.database.models import Profile
 from app.lookups.enums import ProfileTypeEnum, SexEnum
-from app.core.app import CurrentUserDTO, CurrentPersonDTO
-
+from app.pages.core.base_page import BasePage
+from app.ui.inputs.text_input import TextInput
+from app.ui.menu_form import KeyAction, MenuField, MenuForm
+from app.ui.prompts import prompt_error
+from app.ui.utils import app_logo
+from app.validators import validate_profile_exists_for_username
 
 if TYPE_CHECKING:
     from app.core.app import App
@@ -31,22 +30,28 @@ class LoginPage(BasePage):
 
     def run(self) -> BasePage | None:
         from app.pages.patient.patient_home_page import PatientHomePage
-
-        self.clear()
-        self.print(app_logo)
+        from app.pages.receptionist.receptionist_home_page import ReceptionistHomePage
 
         if self.fields is None:
             self.fields = self._init_fields()
+        menu_form = MenuForm(
+            self.fields,
+            title=f"Login as {self.profile_type.display}",
+            submit_label="Login",
+        )
+
         while True:
-            menu_form = MenuForm(
-                self.fields,
-                title=f"Login as {self.profile_type.display}",
-                submit_label="Login",
-            )
-            data = menu_form.run(self.console)
+            self.clear()
+            self.print(app_logo)
+            data = menu_form.run()
 
             if data is None:
-                return None
+                continue
+            if data is KeyAction.BACK:
+                if len(self.app._page_stack) > 1:
+                    return
+                else:
+                    continue
 
             # Attempt user login
             try:
@@ -59,15 +64,16 @@ class LoginPage(BasePage):
                     if not self.app.services.user.validate_password(
                         session, user.user_id, data[FieldKey.PASSWORD.value]
                     ):
-                        self.print_error("Incorrect password!")
-                        input("Press ENTER to continue...")
+                        prompt_error(self.console, "Incorrect password!")
                         continue
 
                     person = user.person
-                    profile = self.app.repos.profile.get_first_by(
+                    profile = self.app.repos.profile.get_first(
                         session,
-                        person_id=person.person_id,
-                        profile_type_id=self.profile_type.value,
+                        conditions=[
+                            Profile.person_id == person.person_id,
+                            Profile.profile_type_id == self.profile_type.value,
+                        ],
                     )
                     if not profile:
                         raise ValueError(
@@ -99,13 +105,12 @@ class LoginPage(BasePage):
                     case ProfileTypeEnum.DOCTOR:
                         return
                     case ProfileTypeEnum.RECEPTIONIST:
-                        return
+                        return ReceptionistHomePage(self.app)
                     case ProfileTypeEnum.ADMIN:
                         return
 
             except Exception as e:
-                self.print_error(f"Failed to login: {e}")
-                input("Press Enter to continue...")
+                prompt_error(self.console, f"Failed to login: {e}")
                 continue
 
     def _init_fields(self) -> list[MenuField]:

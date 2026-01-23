@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 from app.core.app import App
-from app.ui.input_result import InputResult
-from app.ui.utils import KeyAction
+from app.ui.inputs.input_result import InputResult
+from app.ui.prompts import KeyAction
 
 
 class BaseInput(ABC):

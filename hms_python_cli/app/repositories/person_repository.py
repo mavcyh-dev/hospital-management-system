@@ -1,6 +1,7 @@
+from app.database.models import Person, Profile, User
+from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session
-from sqlalchemy import select, or_, exists
-from app.database.models import Person, User, Profile
+
 from .base_repository import BaseRepository
 
 

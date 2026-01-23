@@ -1,28 +1,21 @@
-from typing import TypeVar, Generic, Sequence
+from typing import Any, Generic, Sequence, TypeVar
+
+from sqlalchemy import and_, exists, func, inspect, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.interfaces import LoaderOption
-from sqlalchemy import select, inspect
 
 T = TypeVar("T")
 
 
 class BaseRepository(Generic[T]):
-    """Base repository with session-per-operation pattern.
-
-    Naming conventions:
-    - add() - creates a new entity
-    - get() - retrieves by primary key
-    - get_by_X() - retrieves by specific field
-    - get_all() - retrieves all entities
-    - exists() / exists_by_X() - checks existence
-    - update() - updates existing entity
-    - delete() - removes entity
-    - list() / list_by_X() - returns multiple entities with optional filtering
-    """
+    """Base repository with condition-based querying only."""
 
     def __init__(self, model: type[T]):
         self.model = model
 
+    # -------------------------------------------------------------------------
+    # INTERNAL
+    # -------------------------------------------------------------------------
     def _get_pk_column(self, session: Session):
         mapper = inspect(self.model)
         if mapper is None:
@@ -30,14 +23,13 @@ class BaseRepository(Generic[T]):
         pk_cols = mapper.primary_key
         if len(pk_cols) != 1:
             raise ValueError("Composite primary keys not supported.")
-        else:
-            return pk_cols[0]
+        return pk_cols[0]
 
     # -------------------------------------------------------------------------
     # CREATE
     # -------------------------------------------------------------------------
     def add(self, session: Session, entity: T) -> T:
-        """Add a new entity to the session and flush to get ID."""
+        """Add a new entity; flush to get DB-generated fields (e.g. ID)."""
         session.add(entity)
         session.flush()
         session.refresh(entity)
@@ -48,56 +40,126 @@ class BaseRepository(Generic[T]):
     # -------------------------------------------------------------------------
 
     def get(
-        self, session: Session, id: int, *, loaders: Sequence[LoaderOption] = ()
+        self,
+        session: Session,
+        id: int,
+        *,
+        conditions: Sequence[Any] = (),
+        loaders: Sequence[LoaderOption] = (),
     ) -> T | None:
-        """Retrieve an entity by primary key with optional eager loading."""
-        stmt = (
-            select(self.model)
-            .where(self._get_pk_column(session) == id)
-            .options(*loaders)
-        )
+        pk = self._get_pk_column(session)
+        stmt = select(self.model).where(and_(pk == id, *conditions)).options(*loaders)
         return session.scalar(stmt)
 
-    def get_all(self, session: Session) -> list[T]:
-        """Retrieve all entities of this model."""
-        stmt = select(self.model)
-        return list(session.scalars(stmt))
+    def get_all(
+        self,
+        session: Session,
+        *,
+        conditions: Sequence[Any] = (),
+        limit: int | None = 100,
+        loaders: Sequence[LoaderOption] = (),
+        order_by: Sequence[Any] = (),
+        offset: int | None = None,
+    ) -> Sequence[T]:
+        stmt = select(self.model).options(*loaders)
 
-    def get_first_by(self, session: Session, **filters) -> T | None:
-        """Get the first entity matching filters."""
-        stmt = select(self.model).filter_by(**filters)
+        if conditions:
+            stmt = stmt.where(*conditions)
+
+        if order_by:
+            stmt = stmt.order_by(*order_by)
+
+        if offset:
+            stmt = stmt.offset(offset)
+
+        if limit is not None:
+            stmt = stmt.limit(limit)
+
+        return session.scalars(stmt).all()
+
+    def get_first(
+        self,
+        session: Session,
+        *,
+        conditions: Sequence[Any] = (),
+        loaders: Sequence[LoaderOption] = (),
+        order_by: Sequence[Any] = (),
+    ) -> T | None:
+        stmt = select(self.model).options(*loaders)
+
+        if conditions:
+            stmt = stmt.where(*conditions)
+
+        if order_by:
+            stmt = stmt.order_by(*order_by)
+
         return session.scalars(stmt).first()
 
-    def list_by(self, session: Session, **filters) -> list[T]:
-        """Get all entities matching filters."""
-        stmt = select(self.model).filter_by(**filters)
+    def list(
+        self,
+        session: Session,
+        *,
+        conditions: Sequence[Any] = (),
+        loaders: Sequence[LoaderOption] = (),
+        order_by: Sequence[Any] = (),
+    ) -> list[T]:
+        stmt = select(self.model).options(*loaders)
+
+        if conditions:
+            stmt = stmt.where(*conditions)
+
+        if order_by:
+            stmt = stmt.order_by(*order_by)
+
         return list(session.scalars(stmt))
 
-    def exists(self, session: Session, id: int) -> bool:
-        """Check if an entity exists by primary key."""
-        return session.get(self.model, id) is not None
+    def exists(
+        self, session: Session, id: int, *, conditions: Sequence[Any] = ()
+    ) -> bool:
+        """Check existence via GET."""
+        return self.get(session, id) is not None
+
+    def exists_with_conditions(
+        self, session: Session, conditions: Sequence[Any] = ()
+    ) -> bool:
+        """Check existence of object with conditions."""
+        stmt = select(exists().where(*conditions))
+        return session.scalar(stmt) or False
+
+    def count(
+        self,
+        session: Session,
+        *,
+        conditions: Sequence[Any] = (),
+    ) -> int:
+        """
+        Count rows of this model with optional conditions.
+        """
+        stmt = select(func.count()).select_from(self.model)
+        if conditions:
+            stmt = stmt.where(*conditions)
+
+        return session.scalar(stmt) or 0
 
     # -------------------------------------------------------------------------
     # UPDATE
     # -------------------------------------------------------------------------
     def update(self, session: Session, entity: T) -> T:
-        """Merge changes of a detached entity into the session."""
-        updated_entity = session.merge(entity)
+        """Merge changes of a detached entity."""
+        merged = session.merge(entity)
         session.flush()
-        session.refresh(updated_entity)
-        return updated_entity
+        session.refresh(merged)
+        return merged
 
     # -------------------------------------------------------------------------
     # DELETE
     # -------------------------------------------------------------------------
     def delete(self, session: Session, entity: T) -> None:
-        """Delete an entity from the session."""
         session.delete(entity)
         session.flush()
 
     def delete_by_id(self, session: Session, id: int) -> None:
-        """Deletes an entity from the session by primary key."""
         entity = self.get(session, id)
-        if entity is None:
+        if not entity:
             raise ValueError(f"Entity id {id} does not exist")
         self.delete(session, entity)

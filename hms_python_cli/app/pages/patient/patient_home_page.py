@@ -1,15 +1,12 @@
 from enum import Enum
 
+from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
+from app.pages.core.base_page import BasePage
+from app.repositories.appointment_repository import AppointmentLoad
+from app.repositories.appointment_request_repository import AppointmentRequestLoad
+from app.ui.prompts import prompt_choice
 from rich.table import Table
 from rich.text import Text
-
-from app.pages.core.base_page import BasePage
-from app.ui.utils import prompt_choice
-
-from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
-
-from app.repositories.appointment_request_repository import AppointmentRequestLoad
-from app.repositories.appointment_repository import AppointmentLoad
 
 
 class PageChoice(Enum):
@@ -24,22 +21,21 @@ class PatientHomePage(BasePage):
     selected_choice: PageChoice | None = None
 
     def run(self) -> BasePage | None:
+        from app.pages.core.edit_personal_information_page import (
+            EditPersonalInformationPage,
+        )
+        from app.pages.patient.patient_create_appointment_request_page import (
+            PatientCreateAppointmentRequestPage,
+        )
         from app.pages.patient.patient_view_all_appointment_requests_page import (
             PatientViewAllAppointmentRequestsPage,
         )
         from app.pages.patient.patient_view_all_appointments_page import (
             PatientViewAllAppointmentsPage,
         )
-        from app.pages.patient.patient_create_appointment_request_page import (
-            PatientCreateAppointmentRequestPage,
-        )
-        from app.pages.core.edit_personal_information_page import (
-            EditPersonalInformationPage,
-        )
 
         self.clear()
         self.display_user_header(self.app)
-        self.console.print("")
 
         self._display_all_appointment_requests()
         self.console.print("")
@@ -71,13 +67,14 @@ class PatientHomePage(BasePage):
                 return
 
     def _display_all_appointment_requests(self):
-        MAX_COUNT = 10
+        MAX_COUNT = 5
         with self.app.session_scope() as session:
             assert self.app.current_person is not None
             patient_profile_id = self.app.current_person.profile_id
             requests = self.app.repos.appointment_request.list_by_patient_profile_id(
                 session,
                 patient_profile_id,
+                order_by_created_datetime_desc=True,
                 loaders=(
                     AppointmentRequestLoad.SPECIALTY,
                     AppointmentRequestLoad.PREFERRED_DOCTOR_WITH_PERSON,
@@ -88,7 +85,7 @@ class PatientHomePage(BasePage):
             title += f" ({MAX_COUNT}/{len(requests)})"
         else:
             title += f" ({len(requests)})"
-        table = Table(title=title, title_justify="left")
+        table = Table(title=title, title_justify="left", show_lines=True)
         table.add_column("Status")
         table.add_column("Created")
         table.add_column("Specialty")
@@ -119,15 +116,20 @@ class PatientHomePage(BasePage):
         self.console.print(table)
 
     def _display_scheduled_appointments(self):
-        MAX_COUNT = 10
+        MAX_COUNT = 5
         with self.app.session_scope() as session:
             assert self.app.current_person is not None
             patient_profile_id = self.app.current_person.profile_id
             appts = self.app.repos.appointment.list_by_patient_profile_id(
                 session,
                 patient_profile_id=patient_profile_id,
-                only_scheduled=True,
-                loaders=(AppointmentLoad.SPECIALTY, AppointmentLoad.DOCTOR_WITH_PERSON),
+                only_include_status_ids=[AppointmentStatusEnum.SCHEDULED],
+                order_by_created_datetime_desc=True,
+                loaders=(
+                    AppointmentLoad.SPECIALTY,
+                    AppointmentLoad.DOCTOR_WITH_PERSON,
+                    AppointmentLoad.CREATED_BY_PROFILE,
+                ),
             )
 
         title = "Your Appointments"
@@ -135,7 +137,8 @@ class PatientHomePage(BasePage):
             title += f" ({MAX_COUNT}/{len(appts)})"
         else:
             title += f" ({len(appts)})"
-        table = Table(title=title, title_justify="left")
+        table = Table(title=title, title_justify="left", show_lines=True)
+        table.add_column("Created by")
         table.add_column("Status")
         table.add_column("Start")
         table.add_column("End")
@@ -146,6 +149,7 @@ class PatientHomePage(BasePage):
 
         for appt in appts[:MAX_COUNT]:
             table.add_row(
+                appt.created_by.type_enum.display,
                 AppointmentStatusEnum(appt.appointment_status_id).display,
                 appt.start_datetime.strftime("%Y-%m-%d %H:%M"),
                 appt.end_datetime.strftime("%Y-%m-%d %H:%M"),

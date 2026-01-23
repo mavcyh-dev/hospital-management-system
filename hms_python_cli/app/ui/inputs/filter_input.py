@@ -6,8 +6,8 @@ from rich.panel import Panel
 
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
-from app.ui.input_result import InputResult
-from app.ui.utils import prompt_choice, prompt_text, KeyAction
+from app.ui.inputs.input_result import InputResult
+from app.ui.prompts import prompt_choice, prompt_text, KeyAction
 
 
 @dataclass(frozen=True)

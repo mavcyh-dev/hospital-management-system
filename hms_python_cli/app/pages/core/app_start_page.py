@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING
 from enum import Enum
+from typing import TYPE_CHECKING
 
-from app.pages.core.base_page import BasePage
-from app.ui.utils import app_logo, prompt_choice
 from app.lookups.enums import ProfileTypeEnum
+from app.pages.core.base_page import BasePage
+from app.ui.prompts import prompt_choice
+from app.ui.utils import app_logo
 
 if TYPE_CHECKING:
     from app.core.app import App
@@ -31,8 +32,8 @@ class AppStartPage(BasePage):
         self.profile_type = profile_type
 
     def run(self) -> BasePage | None:
-        from app.pages.core.login_page import LoginPage
         from app.pages.core.create_user_account_page import CreateUserAccountPage
+        from app.pages.core.login_page import LoginPage
 
         if self.profile_type:
             return LoginPage(self.app, self.profile_type)

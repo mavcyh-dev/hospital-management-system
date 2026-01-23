@@ -1,13 +1,12 @@
-import re
-from datetime import datetime, date, time
-from sqlalchemy.orm import Session
-from typing import Callable, ContextManager
 import operator
-
-from app.ui.input_result import InputResult
-from app.services.user_service import UserService
+import re
+from datetime import date, datetime
+from typing import Callable, ContextManager
 
 from app.lookups.enums import ProfileTypeEnum
+from app.services.user_service import UserService
+from app.ui.inputs.input_result import InputResult
+from sqlalchemy.orm import Session
 
 OP_DISPLAY = {
     operator.gt: ">",
@@ -91,7 +90,7 @@ def validate_time(raw: str) -> InputResult:
             return InputResult(value=t, display_value=t.strftime("%H:%M"))
         except ValueError:
             continue
-    return InputResult(value=raw, error="Invalid time format (expected HH:MM)")
+    return InputResult(value=raw, error="Invalid time format (expected HH:MM, 24HR)")
 
 
 def validate_user_exists_for_username(

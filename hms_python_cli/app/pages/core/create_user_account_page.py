@@ -1,24 +1,23 @@
-from typing import Any
-from enum import Enum
-import time
-from datetime import date
 import operator
-from sqlalchemy.orm import Session
+from datetime import date
+from enum import Enum
+from typing import Any
 
 from app.database.models.user_person import User
-
-from app.ui.menu_form import MenuForm, MenuField
-from app.ui.inputs.text_input import TextInput
-from app.ui.inputs.enum_input import EnumInput
-from app.pages.core.base_page import BasePage
 from app.lookups.enums import SexEnum
+from app.pages.core.base_page import BasePage
+from app.ui.inputs.enum_input import EnumInput
+from app.ui.inputs.text_input import TextInput
+from app.ui.menu_form import KeyAction, MenuField, MenuForm
+from app.ui.prompts import prompt_error, prompt_success
 from app.validators import (
-    validate_password,
     validate_date,
-    validate_email,
-    validate_phone_number,
     validate_date_relation,
+    validate_email,
+    validate_password,
+    validate_phone_number,
 )
+from sqlalchemy.orm import Session
 
 
 class FieldKey(Enum):
@@ -37,35 +36,32 @@ class CreateUserAccountPage(BasePage):
     fields: list[MenuField] | None = None
 
     def run(self) -> BasePage | None:
-
-        self.clear()
-
         if self.fields is None:
             self.fields = self._init_fields()
+        menu_form = MenuForm(self.fields, "Create User Account", submit_label="Create")
 
         while True:
-            menu_form = MenuForm(
-                self.fields, "Create User Account", submit_label="Create"
-            )
-            data = menu_form.run(self.console)
+            self.clear()
+            self.display_user_header(self.app)
+            data = menu_form.run()
 
             if data is None:
+                continue
+            if data is KeyAction.BACK:
                 return
 
             # Attempt user creation
             try:
                 with self.app.session_scope() as session:
                     self._create_user_with_patient_profile(session, data)
-
-                    self.print_success(
-                        "User account created successfully! Patient profile automatically added."
+                    prompt_success(
+                        self.console,
+                        "User account created successfully! Patient profile automatically added.",
                     )
-                    time.sleep(2)
                     return
 
             except Exception as e:
-                self.print_error(f"Failed to create account: {e}")
-                input("Press Enter to continue...")
+                prompt_error(self.console, f"Failed to create account: {e}")
                 continue
 
     def _init_fields(self) -> list[MenuField]:

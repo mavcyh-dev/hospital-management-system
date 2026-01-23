@@ -112,7 +112,6 @@ class AppointmentService(BaseService[Appointment]):
             handled_by_profile_id=handled_by_profile_id,
             handling_notes=handling_notes,
         )
-
         return self.appointment_request_repo.update(session, appointment_request)
 
     def update_appointment_request_cancelled(
@@ -128,7 +127,6 @@ class AppointmentService(BaseService[Appointment]):
                 f"Appointment request id {appointment_request_id} does not exist."
             )
         appointment_request.cancel()
-
         return self.appointment_request_repo.update(session, appointment_request)
 
     def update_appointment_request_rejected(
@@ -148,8 +146,41 @@ class AppointmentService(BaseService[Appointment]):
         appointment_request.reject(
             handled_by_profile_id=handled_by_profile_id, handling_notes=handling_notes
         )
-
         return self.appointment_request_repo.update(session, appointment_request)
+
+    def update_appointment_completed(
+        self, session: Session, appointment_id: int
+    ) -> Appointment:
+        appointment = self.appointment_repo.get(session, appointment_id)
+        if not appointment:
+            raise ValueError(f"Appointment id {appointment_id} does not exist.")
+        appointment.complete()
+        return self.appointment_repo.update(session, appointment)
+
+    def update_appointment_cancelled(
+        self,
+        session: Session,
+        appointment_id: int,
+        cancelled_by_profile_id: int,
+        cancellation_reason: str,
+    ) -> Appointment:
+        appointment = self.appointment_repo.get(session, appointment_id)
+        if not appointment:
+            raise ValueError(f"Appointment id {appointment_id} does not exist.")
+        appointment.cancel(
+            cancelled_by_profile_id=cancelled_by_profile_id,
+            cancellation_reason=cancellation_reason,
+        )
+        return self.appointment_repo.update(session, appointment)
+
+    def update_appointment_missed(
+        self, session: Session, appointment_id: int
+    ) -> Appointment:
+        appointment = self.appointment_repo.get(session, appointment_id)
+        if not appointment:
+            raise ValueError(f"Appointment id {appointment_id} does not exist.")
+        appointment.miss()
+        return self.appointment_repo.update(session, appointment)
 
     # -------------------------------------------------------------------------
     # DELETE

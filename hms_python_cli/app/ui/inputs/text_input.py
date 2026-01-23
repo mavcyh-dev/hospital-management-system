@@ -4,8 +4,8 @@ from typing import Sequence, Any
 
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
-from app.ui.input_result import InputResult
-from app.ui.utils import prompt_text, KeyAction
+from app.ui.inputs.input_result import InputResult
+from app.ui.prompts import prompt_text, KeyAction
 
 
 Validator = Callable[[Any], InputResult]

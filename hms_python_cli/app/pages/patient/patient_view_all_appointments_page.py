@@ -1,27 +1,23 @@
-from enum import Enum
 import math
 
-from rich.table import Table
-from rich.text import Text
-
-from app.pages.core.base_page import BasePage
-from app.ui.utils import prompt_choice, KeyAction
-
 from app.database.models import Appointment
-from app.repositories.appointment_repository import AppointmentLoad
 from app.lookups.enums import AppointmentStatusEnum
+from app.pages.core.base_page import BasePage
+from app.repositories.appointment_repository import AppointmentLoad
+from app.ui.prompts import KeyAction, prompt_choice, prompt_continue_message
+from rich.table import Table
 
 
 class PatientViewAllAppointmentsPage(BasePage):
     appointments: list[Appointment]
 
-    items_per_scroll: int = 20
+    items_per_scroll: int = 10
     scroll_offset: int = 0
     max_scroll_offset: int
 
     def run(self) -> BasePage | None:
-        from app.pages.patient.patient_edit_appointment_page import (
-            PatientEditAppointmentPage,
+        from app.pages.patient.patient_view_appointment_page import (
+            PatientViewAppointmentPage,
         )
 
         self.appointments = self._retrieve_appointments()
@@ -32,11 +28,9 @@ class PatientViewAllAppointmentsPage(BasePage):
         while True:
             self.clear()
             self.display_user_header(self.app)
-            self.console.print("")
 
             if len(self.appointments) == 0:
-                print("No appointments.")
-                input("Press ENTER to continue...")
+                prompt_continue_message(self.console, "No appointments.")
                 return
 
             self._display_all_appointment_requests()
@@ -60,17 +54,17 @@ class PatientViewAllAppointmentsPage(BasePage):
 
             if self.selected_choice == KeyAction.BACK:
                 return
-
             elif self.selected_choice == KeyAction.LEFT:
-                if self.scroll_offset > 0:
-                    self.scroll_offset -= 1
-
+                self.scroll_offset = (self.scroll_offset - 1) % (
+                    self.max_scroll_offset + 1
+                )
             elif self.selected_choice == KeyAction.RIGHT:
-                if self.scroll_offset < self.max_scroll_offset:
-                    self.scroll_offset += 1
-
+                self.scroll_offset = (self.scroll_offset + 1) % (
+                    self.max_scroll_offset + 1
+                )
             else:
                 chosen_id = self.selected_choice
+                return PatientViewAppointmentPage(self.app, chosen_id)
 
     def _get_visible_window(self):
         start = self.scroll_offset * self.items_per_scroll
@@ -81,8 +75,9 @@ class PatientViewAllAppointmentsPage(BasePage):
         visible, start_index = self._get_visible_window()
 
         title = f"Your Appointments ({start_index+1}-{start_index+len(visible)}/{len(self.appointments)})"
-        table = Table(title=title, title_justify="left")
+        table = Table(title=title, title_justify="left", show_lines=True)
         table.add_column("No.")
+        table.add_column("Created by")
         table.add_column("Status")
         table.add_column("Start")
         table.add_column("End")
@@ -96,6 +91,7 @@ class PatientViewAllAppointmentsPage(BasePage):
 
             table.add_row(
                 str(global_index + 1),
+                appt.created_by.type_enum.display,
                 AppointmentStatusEnum(appt.appointment_status_id).display,
                 appt.start_datetime.strftime("%Y-%m-%d %H:%M"),
                 appt.end_datetime.strftime("%Y-%m-%d %H:%M"),
@@ -115,9 +111,11 @@ class PatientViewAllAppointmentsPage(BasePage):
                 self.app.repos.appointment.list_by_patient_profile_id(
                     session,
                     patient_profile_id,
+                    order_by_created_datetime_desc=True,
                     loaders=(
                         AppointmentLoad.SPECIALTY,
                         AppointmentLoad.DOCTOR_WITH_PERSON,
+                        AppointmentLoad.CREATED_BY_PROFILE,
                     ),
                 )
             )

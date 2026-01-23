@@ -1,24 +1,29 @@
-from typing import TYPE_CHECKING, Optional, List
 from datetime import datetime
+from typing import TYPE_CHECKING, List, Optional
+
+from app.lookups.enums import (
+    AppointmentRequestStatusEnum,
+    AppointmentStatusEnum,
+    ProfileTypeEnum,
+)
 from sqlalchemy import (
-    String,
-    Integer,
+    CheckConstraint,
     DateTime,
-    Text,
     ForeignKey,
     Index,
-    CheckConstraint,
+    Integer,
+    String,
+    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base import Base
 
-from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
-
 if TYPE_CHECKING:
-    from .profiles import PatientProfile, DoctorProfile, Profile
-    from .specialty import Specialty
     from .prescription import Prescription
+    from .profiles import DoctorProfile, PatientProfile, Profile
+    from .specialty import Specialty
 
 
 class AppointmentRequestStatus(Base):
@@ -133,7 +138,7 @@ class AppointmentRequest(Base):
         self,
         appointment_id: int,
         handled_by_profile_id: int,
-        handling_notes: str | None,
+        handling_notes: str | None = None,
     ):
         if self.status_enum != AppointmentRequestStatusEnum.PENDING:
             raise ValueError("Only pending appointment requests can be approved.")
@@ -258,6 +263,12 @@ class Appointment(Base):
         return AppointmentStatusEnum(self.appointment_status_id)
 
     @property
+    def cancelled_by_profile_type_enum(self) -> ProfileTypeEnum | None:
+        if self.cancelled_by_profile_id is None:
+            return
+        return ProfileTypeEnum(self.cancelled_by_profile_id)
+
+    @property
     def is_scheduled(self):
         return self.appointment_status_id == AppointmentStatusEnum.SCHEDULED
 
@@ -274,18 +285,19 @@ class Appointment(Base):
         return self.appointment_status_id == AppointmentStatusEnum.MISSED
 
     def complete(self):
-        if self.status != AppointmentStatusEnum.SCHEDULED:
+        if self.status_enum != AppointmentStatusEnum.SCHEDULED:
             raise ValueError("Only scheduled appointments can be completed.")
         self.appointment_status_id = AppointmentStatusEnum.COMPLETED
 
     def cancel(self, cancelled_by_profile_id: int, cancellation_reason: str):
-        if self.status != AppointmentStatusEnum.SCHEDULED:
+        if self.status_enum != AppointmentStatusEnum.SCHEDULED:
             raise ValueError("Only scheduled appointments can be cancelled.")
         self.appointment_status_id = AppointmentStatusEnum.CANCELLED
         self.cancelled_by_profile_id = cancelled_by_profile_id
         self.cancellation_reason = cancellation_reason
+        self.cancelled_datetime = datetime.now()
 
     def miss(self):
-        if self.status != AppointmentStatusEnum.SCHEDULED:
+        if self.status_enum != AppointmentStatusEnum.SCHEDULED:
             raise ValueError("Only scheduled appointments can be missed.")
         self.appointment_status_id = AppointmentStatusEnum.MISSED

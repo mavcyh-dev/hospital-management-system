@@ -1,7 +1,15 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select, exists
+from typing import Sequence
+
 from app.database.models import User
+from sqlalchemy import exists, select
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm.interfaces import LoaderOption
+
 from .base_repository import BaseRepository
+
+
+class UserLoad:
+    PERSON = joinedload(User.person)
 
 
 class UserRepository(BaseRepository[User]):
@@ -11,40 +19,22 @@ class UserRepository(BaseRepository[User]):
     # -------------------------------------------------------------------------
     # READ
     # -------------------------------------------------------------------------
-    def get_by_person_id(self, session: Session, person_id: int) -> User | None:
-        """Retrieve a user by the related person_id."""
-        stmt = select(User).where(User.person_id == person_id)
-        return session.scalar(stmt)
-
-    def get_with_person(self, session: Session, user_id: int) -> User | None:
-        """Retrieve a user with their related person eagerly loaded."""
-        stmt = (
-            select(User).options(joinedload(User.person)).where(User.user_id == user_id)
-        )
-        return session.scalar(stmt)
-
-    def get_by_username(self, session: Session, username: str) -> User | None:
-        """Retrieve a user by username."""
-        stmt = select(User).where(User.username == username)
-        return session.scalar(stmt)
-
-    def get_by_username_with_person(
-        self, session: Session, username: str
+    def get_by_person_id(
+        self, session: Session, person_id: int, *, loaders: Sequence[LoaderOption] = ()
     ) -> User | None:
-        """Retrieve a user by username with person eagerly loaded."""
-        stmt = (
-            select(User)
-            .options(joinedload(User.person))
-            .where(User.username == username)
-        )
+        stmt = select(User).where(User.person_id == person_id).options(*loaders)
+        return session.scalar(stmt)
+
+    def list_by_person_ids(self, session: Session, person_ids: list[int]) -> list[User]:
+        stmt = select(User).where(User.person_id.in_(person_ids))
+        return list(session.scalars(stmt))
+
+    def get_by_username(
+        self, session: Session, username: str, *, loaders: Sequence[LoaderOption] = ()
+    ) -> User | None:
+        stmt = select(User).where(User.username == username).options(*loaders)
         return session.scalar(stmt)
 
     def exists_by_username(self, session: Session, username: str) -> bool:
-        """Check if a username already exists."""
         stmt = select(exists().where(User.username == username))
         return session.scalar(stmt) or False
-
-    def list_by_person_ids(self, session: Session, person_ids: list[int]) -> list[User]:
-        """Retrieve all users associated with given person IDs."""
-        stmt = select(User).where(User.person_id.in_(person_ids))
-        return list(session.scalars(stmt))

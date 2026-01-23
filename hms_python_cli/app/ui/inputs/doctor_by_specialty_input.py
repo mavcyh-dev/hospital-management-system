@@ -1,8 +1,7 @@
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
-from app.ui.inputs.filter_input import FilterInput, FilterItem
-from app.ui.input_result import InputResult
-from app.ui.utils import KeyAction
+from app.ui.inputs.filter_input import FilterInput, FilterItem, KeyAction, InputResult
+from app.ui.prompts import prompt_continue_message
 
 
 class DoctorBySpecialtyInput(BaseInput):
@@ -30,10 +29,10 @@ class DoctorBySpecialtyInput(BaseInput):
             )
 
             if len(doctors) == 0:
-                self.console.print(
-                    f"No doctors found for specialty {consumed.display_value}."
+                prompt_continue_message(
+                    self.console,
+                    f"No doctors found for specialty {consumed.display_value}.",
                 )
-                input("Press ENTER to continue...")
                 return InputResult(value=None)
 
             filter_items: list[FilterItem] = []

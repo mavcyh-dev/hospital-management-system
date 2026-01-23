@@ -1,10 +1,10 @@
 from typing import Sequence
 
+from app.database.models import DoctorProfile, Profile, Specialty
+from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.interfaces import LoaderOption
-from sqlalchemy import select
 
-from app.database.models import DoctorProfile, Profile, Specialty
 from .base_repository import BaseRepository
 
 
@@ -75,9 +75,7 @@ class DoctorProfileRepository(BaseRepository[DoctorProfile]):
         )
 
         if active_only:
-            stmt = stmt.where(
-                Profile.is_in_service == True, Specialty.is_in_service == True
-            )
+            stmt = stmt.where(Profile.is_in_service, Specialty.is_in_service)
 
         return list(
             session.scalars(stmt).unique()
@@ -92,7 +90,7 @@ class DoctorProfileRepository(BaseRepository[DoctorProfile]):
         stmt = (
             select(DoctorProfile)
             .join(DoctorProfile.profile)
-            .where(Profile.is_in_service == True)
+            .where(Profile.is_in_service)
             .options(*loaders)
         )
         return list(session.scalars(stmt).unique())

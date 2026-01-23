@@ -1,6 +1,5 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select, exists
 from app.database.models import Prescription
+
 from .base_repository import BaseRepository
 
 

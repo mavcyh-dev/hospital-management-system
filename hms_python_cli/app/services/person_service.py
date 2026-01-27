@@ -1,10 +1,10 @@
-from datetime import datetime, date
-from sqlalchemy.orm import Session
+from datetime import date
 
 from app.database.models import Person
-from app.repositories.user_repository import UserRepository
 from app.repositories.person_repository import PersonRepository
+from app.repositories.user_repository import UserRepository
 from app.services.base_service import BaseService
+from sqlalchemy.orm import Session
 
 
 class PersonService(BaseService[Person]):

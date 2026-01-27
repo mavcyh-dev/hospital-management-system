@@ -3,6 +3,7 @@ import math
 from app.core.app import App
 from app.lookups.enums import AppointmentRequestStatusEnum
 from app.pages.core.base_page import BasePage
+from app.repositories.appointment_request_repository import AppointmentRequestLoad
 from app.ui.prompts import KeyAction, prompt_choice, prompt_continue_message
 from rich.table import Table
 from rich.text import Text
@@ -21,38 +22,39 @@ class ReceptionistSelectFromAppointmentRequestsInSpecialty(BasePage):
         )
 
     def run(self) -> BasePage | None:
-        from app.pages.patient.patient_view_appointment_request_page import (
-            PatientViewAppointmentRequestPage,
+        from app.pages.receptionist.receptionist_work_on_appointment_request_page import (
+            ReceptionistWorkOnAppointmentRequestPage,
         )
 
         with self.app.session_scope() as session:
-            self.appointment_reqeusts = (
+            self.appointment_requests = (
                 self.app.repos.appointment_request.list_by_specialty(
                     session,
                     specialty_id=self.specialty_id,
                     only_include_status_ids=[AppointmentRequestStatusEnum.PENDING],
                     order_by_created_datetime_desc=True,
+                    loaders=[
+                        AppointmentRequestLoad.PATIENT_WITH_PERSON,
+                        AppointmentRequestLoad.PREFERRED_DOCTOR_WITH_PERSON,
+                    ],
                 )
             )
 
         self.max_scroll_offset = max(
-            0, math.ceil(len(self.appointment_reqeusts) / self.items_per_scroll) - 1
+            0, math.ceil(len(self.appointment_requests) / self.items_per_scroll) - 1
         )
 
         while True:
             self.clear()
             self.display_user_header(self.app)
-            self.console.print("")
-
-            if len(self.appointment_reqeusts) == 0:
+            if len(self.appointment_requests) == 0:
                 prompt_continue_message(
                     self.console,
                     f"No appointment requests for specialty {self.app.lookup_cache.get_specialty_name(self.specialty_id)}.",
                 )
                 return
 
-            self._display_all_pending_appointment_reqeusts_in_specialty()
-            self.console.print("")
+            self._display_all_pending_appointment_requests_in_specialty()
 
             visible, start_index = self._get_visible_window()
 
@@ -69,7 +71,7 @@ class ReceptionistSelectFromAppointmentRequestsInSpecialty(BasePage):
                 choices,
                 exitable=True,
                 clearable=False,
-                scrollable=len(self.appointment_reqeusts) > self.items_per_scroll,
+                scrollable=len(self.appointment_requests) > self.items_per_scroll,
                 show_frame=True,
             )
 
@@ -85,20 +87,21 @@ class ReceptionistSelectFromAppointmentRequestsInSpecialty(BasePage):
                 )
             else:
                 choice_id = self.selected_choice
-                return PatientViewAppointmentRequestPage(self.app, choice_id)
+                return ReceptionistWorkOnAppointmentRequestPage(self.app, choice_id)
 
     def _get_visible_window(self):
         start = self.scroll_offset * self.items_per_scroll
         end = start + self.items_per_scroll
-        return self.appointment_reqeusts[start:end], start
+        return self.appointment_requests[start:end], start
 
-    def _display_all_pending_appointment_reqeusts_in_specialty(self):
+    def _display_all_pending_appointment_requests_in_specialty(self):
         visible, start_index = self._get_visible_window()
 
-        title = f"Pending Appointment Requests for {self.specialty_name} ({start_index+1}-{start_index+len(visible)}/{len(self.appointment_reqeusts)})"
+        title = f"Pending Appointment Requests for {self.specialty_name} ({start_index+1}-{start_index+len(visible)}/{len(self.appointment_requests)})"
         table = Table(title=title, title_justify="left", show_lines=True)
         table.add_column("No.")
         table.add_column("Created")
+        table.add_column("Created by")
         table.add_column("Reason")
         table.add_column("Preferred Doctor")
         table.add_column("Preferred Datetime")
@@ -108,6 +111,7 @@ class ReceptionistSelectFromAppointmentRequestsInSpecialty(BasePage):
             table.add_row(
                 str(global_index + 1),
                 request.created_datetime.strftime("%Y-%m-%d"),
+                request.patient.full_name,
                 request.reason,
                 (
                     request.preferred_doctor.full_name
@@ -121,4 +125,5 @@ class ReceptionistSelectFromAppointmentRequestsInSpecialty(BasePage):
                 ),
             )
 
-        self.console.print(table)
+        self.print(table)
+        self.print("")

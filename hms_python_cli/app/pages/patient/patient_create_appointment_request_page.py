@@ -8,7 +8,12 @@ from app.ui.inputs.filter_input import FilterInput, FilterItem
 from app.ui.inputs.text_input import TextInput
 from app.ui.menu_form import KeyAction, MenuField, MenuForm
 from app.ui.prompts import prompt_error, prompt_success
-from app.validators import validate_date, validate_date_in_range, validate_time
+from app.validators import (
+    validate_date,
+    validate_date_in_range,
+    validate_time,
+    validate_time_interval,
+)
 
 
 class FieldKey(Enum):
@@ -43,13 +48,6 @@ class PatientCreateAppointmentRequestPage(BasePage):
             try:
                 with self.app.session_scope() as session:
                     assert self.app.current_person is not None
-                    patient_profile = self.app.repos.patient_profile.get_by_person_id(
-                        session, self.app.current_person.person_id
-                    )
-                    if not patient_profile:
-                        raise ValueError(
-                            f"Patient profile not found for person id {self.app.current_person.person_id}"
-                        )
 
                     preferred_datetime = None
                     preferred_date = data[FieldKey.PREFERRED_DATE.value]
@@ -61,7 +59,7 @@ class PatientCreateAppointmentRequestPage(BasePage):
 
                     self.app.services.appointment.create_appointment_request(
                         session=session,
-                        patient_profile_id=patient_profile.profile_id,
+                        patient_profile_id=self.app.current_person.profile_id,
                         specialty_id=data[FieldKey.SPECIALTY.value],
                         reason=data[FieldKey.REASON.value],
                         preferred_doctor_profile_id=data[
@@ -130,8 +128,13 @@ class PatientCreateAppointmentRequestPage(BasePage):
                 f"{FieldKey.PREFERRED_TIME.value} (Date required)",
                 TextInput(
                     self.app,
-                    f"{FieldKey.PREFERRED_TIME.value} [HH:MM], 24HR",
-                    validators=validate_time,
+                    f"{FieldKey.PREFERRED_TIME.value} [HH:MM], 24HR ({AppConfig.appointment_timeslot_min_interval_minutes}-minute intervals)",
+                    validators=[
+                        validate_time,
+                        lambda x: validate_time_interval(
+                            x, AppConfig.appointment_timeslot_min_interval_minutes
+                        ),
+                    ],
                 ),
                 required=False,
             ),

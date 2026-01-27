@@ -35,7 +35,6 @@ class ReceptionistSelectSpecialtyToWorkOnPage(BasePage):
                 return
 
             self._display_all_specialties_pending_appointment_requests()
-            self.console.print("")
 
             visible, start_index = self._get_visible_window()
 
@@ -44,7 +43,7 @@ class ReceptionistSelectSpecialtyToWorkOnPage(BasePage):
                     specialty_id,
                     f"No. {start_index + idx + 1}: {self.app.lookup_cache.get_specialty_name(specialty_id)}",
                 )
-                for idx, (specialty_id, _, _) in enumerate(visible)
+                for idx, (specialty_id, _, _, _) in enumerate(visible)
             ]
 
             self.selected_choice = prompt_choice(
@@ -105,4 +104,5 @@ class ReceptionistSelectSpecialtyToWorkOnPage(BasePage):
                 dt,
             )
 
-        self.console.print(table)
+        self.print(table)
+        self.print("")

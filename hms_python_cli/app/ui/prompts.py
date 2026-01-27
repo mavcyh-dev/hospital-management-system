@@ -1,11 +1,11 @@
-from typing import overload, Literal, TypeVar
-from enum import Enum
-import sys
 import os
-
+import sys
 from collections.abc import Sequence
+from enum import Enum
+from typing import Any, Literal, TypeVar, overload
+
 from prompt_toolkit import PromptSession
-from prompt_toolkit.formatted_text import HTML, AnyFormattedText
+from prompt_toolkit.formatted_text import HTML, AnyFormattedText, FormattedText
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.shortcuts import choice
 from prompt_toolkit.styles import Style
@@ -73,7 +73,7 @@ def _bottom_toolbar_prompt_choice(
     scrollable_text = " <b>[←]</b>/<b>[→]</b> to scroll." if scrollable else ""
     return HTML(
         f" Press <b>[↑]</b>/<b>[↓]</b>/<b>[1-{min(9, option_count)}]</b> to select, "
-        f"<b>[Enter]</b> to confirm.{exit_text}{clear_text}{scrollable_text}"
+        f"<b>[Enter]</b> to confirm.{scrollable_text}{exit_text}{clear_text}"
     )
 
 
@@ -166,7 +166,30 @@ def prompt_choice(
     show_frame: bool = False,
 ) -> T | KeyAction:
     return choice(
-        message=HTML(f"<u>{message}</u>"),
+        message=FormattedText([("underline", message)]),
+        options=options,
+        default=default,
+        bottom_toolbar=_bottom_toolbar_prompt_choice(
+            len(options), exitable, clearable, scrollable
+        ),
+        key_bindings=_get_keybindings(exitable, clearable, scrollable),
+        show_frame=show_frame,
+        style=PROMPT_STYLE,
+    )
+
+
+def prompt_choice_with_unrestricted_options(
+    message: str,
+    options: Sequence[tuple[Any, AnyFormattedText]],
+    *,
+    default: T | None = None,
+    exitable: bool = True,
+    clearable: bool = False,
+    scrollable: bool = False,
+    show_frame: bool = False,
+) -> Any:
+    return choice(
+        message=FormattedText([("underline", message)]),
         options=options,
         default=default,
         bottom_toolbar=_bottom_toolbar_prompt_choice(
@@ -189,7 +212,7 @@ def prompt_text(
     message: str,
     *,
     is_password: bool = False,
-    default: str = "",
+    default: str | None = None,
     exitable: Literal[True],
     clearable: Literal[True],
 ) -> str | Literal[KeyAction.BACK, KeyAction.CLEAR]: ...
@@ -200,7 +223,7 @@ def prompt_text(
     message: str,
     *,
     is_password: bool = False,
-    default: str = "",
+    default: str | None = None,
     exitable: Literal[True],
     clearable: Literal[False],
 ) -> str | Literal[KeyAction.BACK]: ...
@@ -211,7 +234,7 @@ def prompt_text(
     message: str,
     *,
     is_password: bool = False,
-    default: str = "",
+    default: str | None = None,
     exitable: Literal[False],
     clearable: Literal[True],
 ) -> str | Literal[KeyAction.CLEAR]: ...
@@ -222,7 +245,7 @@ def prompt_text(
     message: str,
     *,
     is_password: bool = False,
-    default: str = "",
+    default: str | None = None,
     exitable: Literal[False],
     clearable: Literal[False],
 ) -> str: ...
@@ -231,15 +254,21 @@ def prompt_text(
 def prompt_text(
     message: str,
     is_password: bool = False,
-    default: str = "",
+    default: str | None = None,
     exitable: bool = True,
     clearable: bool = True,
 ) -> str | KeyAction:
     session = PromptSession()
     if default is None:
         default = ""
+    prompt = FormattedText(
+        [
+            ("class:bold", f"{message}"),
+            ("", "\n > "),
+        ]
+    )
     return session.prompt(
-        HTML(f" <b><u>{message}</u></b>\n > "),
+        prompt,
         is_password=is_password,
         default=default if not is_password else "",
         bottom_toolbar=prompt_text_bottom_toolbar(exitable, clearable),
@@ -249,25 +278,25 @@ def prompt_text(
 
 
 def prompt_continue_message(console: Console, msg: str):
-    console.print(f"[bold]{msg}[/]")
-    console.print(f"Press ENTER to continue...")
+    console.print(f"\n [bold]{msg}[/]")
+    console.print(" Press ENTER to continue...")
     _enter_to_continue()
 
 
 def prompt_success(console: Console, success_msg: str):
-    console.print(f"[bold green]{success_msg}[/]")
-    console.print(f"Press ENTER to continue...")
+    console.print(f"\n [bold green]{success_msg}[/]")
+    console.print(" Press ENTER to continue...")
     _enter_to_continue()
 
 
 def prompt_error(console: Console, error_msg: str):
-    console.print(f"[bold red]{error_msg}[/]")
-    console.print(f"Press ENTER to continue...")
+    console.print(f"\n [bold red]{error_msg}[/]")
+    console.print(" Press ENTER to continue...")
     _enter_to_continue()
 
 
 def prompt_enter_to_continue(console: Console):
-    console.print(f"Press ENTER to continue...")
+    console.print("\n Press ENTER to continue...")
     _enter_to_continue()
 
 
@@ -281,7 +310,8 @@ def _enter_to_continue():
                 return
     else:
         # POSIX (Linux/macOS)
-        import termios, tty
+        import termios
+        import tty
 
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)

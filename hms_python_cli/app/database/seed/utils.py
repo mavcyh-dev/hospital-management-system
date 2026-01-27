@@ -21,9 +21,9 @@ def generate_random_appointment_requests_for_patients(
     fake: Faker,
     patients: Sequence[PatientProfile],
     doctors: Sequence[DoctorProfile],
-    peak_count: int = 4,
+    peak_count: int = 8,
     min_count: int = 0,
-    max_count: int = 30,
+    max_count: int = 80,
     creation_datetime_max_days_bef_current: int = 365,
     preferred_datetime_max_days_aft_creation: int = 180,
 ) -> list[AppointmentRequest]:
@@ -63,6 +63,9 @@ def generate_random_appointment_request(
     preferred_datetime = fake.date_time_between_dates(
         created_datetime,
         created_datetime + timedelta(days=preferred_datetime_max_days_aft_creation),
+    )
+    preferred_datetime = round_datetime_to_interval(
+        preferred_datetime, AppConfig.appointment_timeslot_min_interval_minutes
     )
 
     return AppointmentRequest(
@@ -153,7 +156,7 @@ def simulate_action_appointment_requests(
                 dt_start=dt_start,
                 dt_end=dt_start + timedelta(days=2),
                 duration_minutes=duration_min,
-                interval_minutes=AppConfig.appointment_timeslot_length_minutes,
+                interval_minutes=AppConfig.appointment_timeslot_min_interval_minutes,
             )
             if result is None:
                 request.cancel()
@@ -166,7 +169,7 @@ def simulate_action_appointment_requests(
                 start_datetime=start,
                 end_datetime=end,
                 patient_profile_id=request.patient_profile_id,
-                doctor_profile_id=doctor_id,  # <- use the selected doctor_id
+                doctor_profile_id=doctor_id,
                 specialty_id=request.specialty_id,
                 room_name=generate_room_name(
                     fake, max_blocks=6, max_floors=20, max_rooms=400
@@ -175,35 +178,36 @@ def simulate_action_appointment_requests(
                 appointment_status_id=AppointmentStatusEnum.SCHEDULED,
                 created_by_profile_id=receptionist.profile_id,
             )
-            session.add(appointment)
-            session.flush()
 
-            request.approve(
-                appointment_id=appointment.appointment_id,
-                handled_by_profile_id=receptionist.profile_id,
-            )
-
-            # Set handled_datetime in a sensible range, ensuring it's not in the future
             if request.preferred_datetime:
                 earliest = request.preferred_datetime - timedelta(
                     days=handled_datetime_min_days_bef_preferred
                 )
                 latest = min(current, request.preferred_datetime)
-                # if latest < earliest, fallback to earliest
+
                 if latest < earliest:
-                    handled_dt = earliest
+                    created_dt = earliest
                 else:
-                    # pick a random datetime between earliest and latest
                     total_seconds = int((latest - earliest).total_seconds())
                     offset = fake.random_int(0, total_seconds)
-                    handled_dt = earliest + timedelta(seconds=offset)
-                request.handled_datetime = handled_dt
+                    created_dt = earliest + timedelta(seconds=offset)
             else:
-                # pick days in [0, handled_datetime_max_days_aft_created]
-                days = fake.random_int(min=0, max=handled_datetime_max_days_aft_created)
-                request.handled_datetime = request.created_datetime + timedelta(
-                    days=days
-                )
+                days = fake.random_int(0, handled_datetime_max_days_aft_created)
+                created_dt = request.created_datetime + timedelta(days=days)
+
+            appointment.created_datetime = created_dt
+
+            session.add(appointment)
+            session.flush()
+
+            # Approve the request
+            request.approve(
+                appointment_id=appointment.appointment_id,
+                handled_by_profile_id=receptionist.profile_id,
+            )
+
+            # request.handled_datetime should be near appointment creation time
+            request.handled_datetime = appointment.created_datetime
 
         elif handling == "cancel":
             request.cancel()

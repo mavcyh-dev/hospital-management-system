@@ -1,44 +1,39 @@
 import traceback
-from typing import Callable, ContextManager
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from sqlalchemy.orm import Session
-
-from rich.console import Console
+from datetime import date, datetime
+from typing import Callable, ContextManager
 
 from app.database.engine import Database
-from app.pages.core.base_page import BasePage
-from app.pages.core.app_start_page import AppStartPage
-from app.ui.prompts import prompt_choice
-
 from app.database.models import (
+    AdminProfile,
+    Medication,
     Profile,
     ReceptionistProfile,
-    AdminProfile,
     Specialty,
-    Medication,
 )
 from app.lookups.enums import ProfileTypeEnum, SexEnum
-
+from app.pages.core.app_start_page import AppStartPage
+from app.pages.core.base_page import BasePage
 from app.repositories import (
-    BaseRepository,
-    UserRepository,
-    PersonRepository,
-    PatientProfileRepository,
-    DoctorProfileRepository,
-    AppointmentRequestRepository,
     AppointmentRepository,
+    AppointmentRequestRepository,
+    BaseRepository,
+    DoctorProfileRepository,
+    PatientProfileRepository,
+    PersonRepository,
     PrescriptionRepository,
+    UserRepository,
 )
-
 from app.services import (
+    AppointmentService,
+    DoctorService,
+    PatientService,
+    PersonService,
     SecurityService,
     UserService,
-    PersonService,
-    PatientService,
-    DoctorService,
-    AppointmentService,
 )
+from rich.console import Console
+from sqlalchemy.orm import Session
 
 
 @dataclass

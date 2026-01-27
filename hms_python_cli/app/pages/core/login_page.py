@@ -29,6 +29,7 @@ class LoginPage(BasePage):
         self.profile_type = profile_type
 
     def run(self) -> BasePage | None:
+        from app.pages.doctor.doctor_home_page import DoctorHomePage
         from app.pages.patient.patient_home_page import PatientHomePage
         from app.pages.receptionist.receptionist_home_page import ReceptionistHomePage
 
@@ -103,7 +104,7 @@ class LoginPage(BasePage):
                     case ProfileTypeEnum.PATIENT:
                         return PatientHomePage(self.app)
                     case ProfileTypeEnum.DOCTOR:
-                        return
+                        return DoctorHomePage(self.app)
                     case ProfileTypeEnum.RECEPTIONIST:
                         return ReceptionistHomePage(self.app)
                     case ProfileTypeEnum.ADMIN:

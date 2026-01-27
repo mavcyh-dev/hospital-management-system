@@ -1,12 +1,10 @@
 from collections.abc import Callable
-from typing import Sequence, Any
-
+from typing import Any, Sequence
 
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.inputs.input_result import InputResult
-from app.ui.prompts import prompt_text, KeyAction
-
+from app.ui.prompts import KeyAction, prompt_text
 
 Validator = Callable[[Any], InputResult]
 

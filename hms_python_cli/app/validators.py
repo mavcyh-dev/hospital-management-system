@@ -1,6 +1,6 @@
 import operator
 import re
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Callable, ContextManager
 
 from app.lookups.enums import ProfileTypeEnum
@@ -91,6 +91,15 @@ def validate_time(raw: str) -> InputResult:
         except ValueError:
             continue
     return InputResult(value=raw, error="Invalid time format (expected HH:MM, 24HR)")
+
+
+def validate_time_interval(value: time, minute_interval: int) -> InputResult:
+    ok = int(value.minute) % minute_interval == 0
+    return InputResult(
+        value=value,
+        display_value=value.strftime("%H:%M"),
+        error=None if ok else f"Time must be in {minute_interval}-minute intervals.",
+    )
 
 
 def validate_user_exists_for_username(

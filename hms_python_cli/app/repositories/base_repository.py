@@ -56,7 +56,7 @@ class BaseRepository(Generic[T]):
         session: Session,
         *,
         conditions: Sequence[Any] = (),
-        limit: int | None = 100,
+        limit: int | None = None,
         loaders: Sequence[LoaderOption] = (),
         order_by: Sequence[Any] = (),
         offset: int | None = None,
@@ -162,4 +162,5 @@ class BaseRepository(Generic[T]):
         entity = self.get(session, id)
         if not entity:
             raise ValueError(f"Entity id {id} does not exist")
-        self.delete(session, entity)
+        session.delete(entity)
+        session.flush()

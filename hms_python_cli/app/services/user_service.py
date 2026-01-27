@@ -1,12 +1,12 @@
-from datetime import datetime, date
-from sqlalchemy.orm import Session
+from datetime import date
 
-from app.database.models import User, Person
-from app.repositories.user_repository import UserRepository
+from app.database.models import Person, User
+from app.lookups.enums import SexEnum
 from app.repositories.person_repository import PersonRepository
+from app.repositories.user_repository import UserRepository
 from app.services.base_service import BaseService
 from app.services.security_service import SecurityService
-from app.lookups.enums import ProfileTypeEnum, SexEnum
+from sqlalchemy.orm import Session
 
 
 class UserService(BaseService[User]):

@@ -1,19 +1,18 @@
-from datetime import datetime, date
-from sqlalchemy.orm import Session
+from datetime import datetime
 
 from app.database.models import Appointment, AppointmentRequest
+from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
 from app.repositories import (
-    BaseRepository,
     AppointmentRepository,
     AppointmentRequestRepository,
-    PatientProfileRepository,
     DoctorProfileRepository,
-    UserRepository,
+    PatientProfileRepository,
     PersonRepository,
+    PrescriptionRepository,
+    UserRepository,
 )
 from app.services.base_service import BaseService
-
-from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
+from sqlalchemy.orm import Session
 
 
 class AppointmentService(BaseService[Appointment]):
@@ -25,6 +24,7 @@ class AppointmentService(BaseService[Appointment]):
         doctor_profile_repo: DoctorProfileRepository,
         user_repo: UserRepository,
         person_repo: PersonRepository,
+        prescription_repo: PrescriptionRepository,
     ):
         super().__init__(appointment_repo)
         self.appointment_repo = appointment_repo
@@ -33,6 +33,7 @@ class AppointmentService(BaseService[Appointment]):
         self.doctor_profile_repo = doctor_profile_repo
         self.user_repo = user_repo
         self.person_repo = person_repo
+        self.prescription_repo = prescription_repo
 
     # -------------------------------------------------------------------------
     # CREATE
@@ -179,6 +180,8 @@ class AppointmentService(BaseService[Appointment]):
         appointment = self.appointment_repo.get(session, appointment_id)
         if not appointment:
             raise ValueError(f"Appointment id {appointment_id} does not exist.")
+        for prescription in appointment.prescriptions:
+            session.delete(prescription)
         appointment.miss()
         return self.appointment_repo.update(session, appointment)
 

@@ -1,12 +1,10 @@
 import math
 
 from app.database.models import AppointmentRequest
-from app.lookups.enums import AppointmentRequestStatusEnum
 from app.pages.core.base_page import BasePage
+from app.pages.patient.patient_tables import patient_display_appointment_requests_table
 from app.repositories.appointment_request_repository import AppointmentRequestLoad
 from app.ui.prompts import KeyAction, prompt_choice, prompt_continue_message
-from rich.table import Table
-from rich.text import Text
 
 
 class PatientViewAllAppointmentRequestsPage(BasePage):
@@ -32,15 +30,22 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
                 prompt_continue_message(self.console, "No appointment requests.")
                 return
 
-            self._display_all_appointment_requests()
-
-            self.console.print("")
-
-            visible, start_index = self._get_visible_window()
+            start_index = self.scroll_offset * self.items_per_scroll
+            patient_display_appointment_requests_table(
+                self.console,
+                self.appointment_requests,
+                title="Your Appointment Requests",
+                max_count=self.items_per_scroll,
+                start_index=start_index,
+            )
 
             choices = [
                 (req.appointment_request_id, f"No. {start_index + idx + 1}")
-                for idx, req in enumerate(visible)
+                for idx, req in enumerate(
+                    self.appointment_requests[
+                        start_index : start_index + self.items_per_scroll
+                    ]
+                )
             ]
 
             self.selected_choice = prompt_choice(
@@ -66,49 +71,6 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
                 choice_id = self.selected_choice
                 return PatientViewAppointmentRequestPage(self.app, choice_id)
 
-    def _get_visible_window(self):
-        start = self.scroll_offset * self.items_per_scroll
-        end = start + self.items_per_scroll
-        return self.appointment_requests[start:end], start
-
-    def _display_all_appointment_requests(self):
-        visible, start_index = self._get_visible_window()
-
-        title = f"Your Appointment Requests ({start_index+1}-{start_index+len(visible)}/{len(self.appointment_requests)})"
-        table = Table(title=title, title_justify="left", show_lines=True)
-        table.add_column("No.")
-        table.add_column("Status")
-        table.add_column("Created")
-        table.add_column("Specialty")
-        table.add_column("Reason")
-        table.add_column("Preferred Doctor")
-        table.add_column("Preferred Datetime")
-
-        for offset, request in enumerate(visible):
-            global_index = start_index + offset
-
-            table.add_row(
-                str(global_index + 1),
-                AppointmentRequestStatusEnum(
-                    request.appointment_request_status_id
-                ).display,
-                request.created_datetime.strftime("%Y-%m-%d"),
-                request.specialty.name,
-                request.reason,
-                (
-                    request.preferred_doctor.full_name
-                    if request.preferred_doctor
-                    else Text("[empty]", style="italic dim")
-                ),
-                (
-                    request.preferred_datetime.strftime("%Y-%m-%d %H:%M")
-                    if request.preferred_datetime
-                    else Text("[empty]", style="italic dim")
-                ),
-            )
-
-        self.console.print(table)
-
     def _retrieve_appointment_requests(self) -> list[AppointmentRequest]:
         with self.app.session_scope() as session:
             assert self.app.current_person is not None
@@ -118,9 +80,9 @@ class PatientViewAllAppointmentRequestsPage(BasePage):
                     session,
                     patient_profile_id,
                     order_by_created_datetime_desc=True,
-                    loaders=(
+                    loaders=[
                         AppointmentRequestLoad.SPECIALTY,
                         AppointmentRequestLoad.PREFERRED_DOCTOR_WITH_PERSON,
-                    ),
+                    ],
                 )
             )

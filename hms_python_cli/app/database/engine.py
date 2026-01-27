@@ -1,11 +1,11 @@
-from collections.abc import Generator, Callable
 from abc import ABC, abstractmethod
-from pathlib import Path
+from collections.abc import Generator
 from contextlib import contextmanager
-from sqlalchemy import create_engine, event, Engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
+
 from app.database.models import Base
+from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 class Database(ABC):
@@ -53,7 +53,7 @@ class MySQLDatabase(Database):
         port: int = 3306,
         username: str = "root",
         password: str = "",
-        database: str = "myapp",
+        database: str = "my_app",
     ):
         super().__init__()
         self.host = host
@@ -80,7 +80,7 @@ class SQLiteDatabase(Database):
         super().__init__()
         self.db_path = db_path
         self._initialize()
-        Base.metadata.create_all(bind=self.engine)
+        Base.metadata.create_all(self.engine)
 
     def _create_engine(self):
         db_url = f"sqlite:///{self.db_path}"

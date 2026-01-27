@@ -1,24 +1,25 @@
-from typing import TYPE_CHECKING, Optional, List
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Boolean, Index, func
+from typing import TYPE_CHECKING, List, Optional
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base import Base
 
 if TYPE_CHECKING:
-    from .profiles import PatientProfile, DoctorProfile
     from .appointments import Appointment
+    from .profiles import DoctorProfile, PatientProfile
 
 
 class Medication(Base):
     """Medication catalog - available medications"""
 
     __tablename__ = "medication"
-    __table_args__ = (Index("idx_generic_name", "generic_name"),)
 
     medication_id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
     )
-    generic_name: Mapped[str] = mapped_column(String(100))
+    generic_name: Mapped[str] = mapped_column(Text)
     is_in_service: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships

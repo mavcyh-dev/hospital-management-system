@@ -1,7 +1,9 @@
 from enum import Enum
+from typing import cast
 
 from app.pages.core.base_page import BasePage
 from app.ui.prompts import prompt_choice
+from prompt_toolkit.formatted_text import FormattedText
 from rich.table import Table
 from rich.text import Text
 
@@ -10,7 +12,7 @@ class PageChoice(Enum):
     SELECT_SPECIALTY_TO_WORK_ON = "Select specialty to work on"
     VIEW_ALL_CREATED_APPOINTMENTS = "View created appointments"
     EDIT_PERSONAL_INFORMATION = "Edit personal information"
-    LOGOUT = "Logout"
+    LOGOUT = cast(FormattedText, [("class:red", "Logout")])
 
 
 class ReceptionistHomePage(BasePage):
@@ -23,12 +25,13 @@ class ReceptionistHomePage(BasePage):
         from app.pages.receptionist.receptionist_select_specialty_to_work_on_page import (
             ReceptionistSelectSpecialtyToWorkOnPage,
         )
+        from app.pages.receptionist.receptionist_view_all_created_appointments_page import (
+            ReceptionistViewAllCreatedAppointmentsPage,
+        )
 
         self.clear()
         self.display_user_header(self.app)
-
         self._display_all_specialties_pending_appointment_requests()
-        self.console.print("")
 
         choices = [(choice, choice.value) for choice in PageChoice]
         self.selected_choice = prompt_choice(
@@ -45,7 +48,7 @@ class ReceptionistHomePage(BasePage):
             case PageChoice.SELECT_SPECIALTY_TO_WORK_ON:
                 return ReceptionistSelectSpecialtyToWorkOnPage(self.app)
             case PageChoice.VIEW_ALL_CREATED_APPOINTMENTS:
-                return
+                return ReceptionistViewAllCreatedAppointmentsPage(self.app)
             case PageChoice.EDIT_PERSONAL_INFORMATION:
                 return EditPersonalInformationPage(self.app)
             case PageChoice.LOGOUT:
@@ -60,7 +63,6 @@ class ReceptionistHomePage(BasePage):
                     session
                 )
             )
-
         title = f"Pending Appointment Requests by Specialty ({min(MAX_COUNT, len(details))}/{len(details)})"
         table = Table(title=title, title_justify="left")
         table.add_column("Specialty")
@@ -82,5 +84,4 @@ class ReceptionistHomePage(BasePage):
                 str(count),
                 dt,
             )
-
-        self.console.print(table)
+        self.print(table)

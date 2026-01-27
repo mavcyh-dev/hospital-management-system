@@ -160,6 +160,7 @@ Table appointment {
   room_name varchar(50) [not null]
   reason text [not null]
   appointment_status_id int [not null]
+  doctor_notes text
 
   created_by_profile_id int [not null]
   created_datetime datetime [not null, default: `now()`]
@@ -191,12 +192,8 @@ Ref: appointment.cancelled_by_profile_id < profile.profile_id
 
 Table medication {
   medication_id int [pk, increment]
-  generic_name varchar(100) [not null]
+  generic_name text [not null]
   is_in_service bool [not null, default: true]
-
-  indexes {
-    generic_name
-  }
 }
 
 Table prescription {

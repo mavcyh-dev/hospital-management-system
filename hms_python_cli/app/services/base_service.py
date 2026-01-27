@@ -1,7 +1,7 @@
-from typing import TypeVar, Generic
-from sqlalchemy.orm import Session
+from typing import Generic, Sequence, TypeVar
 
 from app.repositories.base_repository import BaseRepository
+from sqlalchemy.orm import Session
 
 T = TypeVar("T")
 
@@ -45,7 +45,7 @@ class BaseService(Generic[T]):
         """Retrieve entity by ID."""
         return self.repo.get(session, id)
 
-    def get_all(self, session: Session) -> list[T]:
+    def get_all(self, session: Session) -> Sequence[T]:
         """Retrieve all entities."""
         return self.repo.get_all(session)
 

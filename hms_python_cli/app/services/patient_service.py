@@ -1,14 +1,10 @@
 from datetime import datetime
-from typing import Optional
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
-from app.repositories import BaseRepository, PatientProfileRepository, PersonRepository
-
-from app.services.base_service import BaseService
-from app.database.models import Profile, PatientProfile
-
+from app.database.models import PatientProfile, Profile
 from app.lookups.enums import ProfileTypeEnum
+from app.repositories import BaseRepository, PatientProfileRepository, PersonRepository
+from app.services.base_service import BaseService
+from sqlalchemy.orm import Session
 
 
 class PatientService(BaseService[PatientProfile]):

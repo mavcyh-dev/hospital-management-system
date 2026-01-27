@@ -9,7 +9,7 @@ from app.database.models import (
     Specialty,
 )
 from app.lookups.enums import AppointmentRequestStatusEnum
-from sqlalchemy import Row, and_, func, select
+from sqlalchemy import Row, and_, case, func, select
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.interfaces import LoaderOption
 
@@ -28,6 +28,7 @@ class AppointmentRequestLoad:
         .joinedload(PatientProfile.profile)
         .joinedload(Profile.person)
     )
+    HANDLED_BY_PROFILE = joinedload(AppointmentRequest.handled_by)
 
 
 class AppointmentRequestRepository(BaseRepository[AppointmentRequest]):
@@ -159,8 +160,10 @@ class AppointmentRequestRepository(BaseRepository[AppointmentRequest]):
             .where(Specialty.is_in_service)
             .group_by(Specialty.specialty_id)
             .order_by(
-                earliest_preferred_datetime.nulls_last(),
-                earliest_created_datetime.nulls_last(),
+                case((earliest_preferred_datetime == None, 1), else_=0),
+                earliest_preferred_datetime,
+                case((earliest_created_datetime == None, 1), else_=0),
+                earliest_created_datetime,
                 appointment_request_count.desc(),
             )
         )

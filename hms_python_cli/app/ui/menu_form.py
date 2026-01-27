@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Literal, TypeVar, cast
 
 from app.ui.inputs.base_input import BaseInput
@@ -7,6 +8,10 @@ from app.ui.prompts import KeyAction, prompt_choice
 from prompt_toolkit.formatted_text import FormattedText
 
 T = TypeVar("T")
+
+
+class MenuFormAction(Enum):
+    DELETE = "__delete__"
 
 
 @dataclass
@@ -21,6 +26,7 @@ class MenuField:
 
 class MenuForm:
     SUBMIT_OPTION_KEY = "__submit__"
+    DELETE_OPTION_KEY = "__delete__"
 
     def __init__(
         self,
@@ -28,6 +34,8 @@ class MenuForm:
         title: str,
         submit_label: str = "Submit",
         default_selected_key: str = "",
+        enable_delete: bool = False,
+        delete_label: str = "Delete",
     ):
         self.title: str = title
         self.fields = fields
@@ -36,8 +44,12 @@ class MenuForm:
         self.current_key: str = (
             default_selected_key if default_selected_key else fields[0].key
         )
+        self.enable_delete = enable_delete
+        self.delete_label = delete_label
 
-    def run(self) -> dict[str, Any] | Literal[KeyAction.BACK] | None:
+    def run(
+        self,
+    ) -> dict[str, Any] | Literal[KeyAction.BACK] | None:
         self.all_valid = self._all_valid()
         options = self._generate_options()
         selected = prompt_choice(
@@ -58,6 +70,8 @@ class MenuForm:
                 # returns data
                 return {field.key: field.input_result.value for field in self.fields}
             return
+        if selected == self.DELETE_OPTION_KEY:
+            return {MenuFormAction.DELETE.value: MenuFormAction.DELETE}
 
         self.current_key = selected
         field = self._find_field(selected)
@@ -79,25 +93,25 @@ class MenuForm:
     def _generate_options(self) -> list[tuple[str, FormattedText]]:
         rendered: list[tuple[str, FormattedText]] = []
 
-        for field in self.fields:
+        for fld in self.fields:
             tokens: FormattedText = cast(FormattedText, [])
 
-            if field.input_result.error:
+            if fld.input_result.error:
                 icon, cls = "✗", "red"
-            elif field.input_result.value is not None:
+            elif fld.input_result.value is not None:
                 icon, cls = "✓", "green"
             else:
                 icon, cls = "?", "yellow"
 
             tokens.append((f"class:{cls}", f"[{icon}] "))
-            tokens.append(("class:red", f"{"* " if field.required else "  "}"))
-            tokens.append(("class:field", f"{field.label}: "))
+            tokens.append(("class:red", f"{"* " if fld.required else "  "}"))
+            tokens.append(("class:field", f"{fld.label}: "))
 
-            if field.input_result.display_value is not None:
-                display = field.input_result.display_value
+            if fld.input_result.display_value is not None:
+                display = fld.input_result.display_value
                 cls = "gray"
-            elif field.input_result.value is not None:
-                display = str(field.input_result.value)
+            elif fld.input_result.value is not None:
+                display = str(fld.input_result.value)
                 cls = "gray"
             else:
                 display = "[empty]"
@@ -105,11 +119,11 @@ class MenuForm:
 
             tokens.append((f"class:{cls}", display))
 
-            if field.input_result.error:
+            if fld.input_result.error:
                 tokens.append(("", "\n    "))
-                tokens.append(("class:error", f"→ {field.input_result.error}"))
+                tokens.append(("class:error", f"→ {fld.input_result.error}"))
 
-            rendered.append((field.key, tokens))
+            rendered.append((fld.key, tokens))
 
         # Submit button
         if self._all_valid():
@@ -117,6 +131,14 @@ class MenuForm:
                 (
                     self.SUBMIT_OPTION_KEY,
                     cast(FormattedText, [("class:green", f"[{self.submit_label}]")]),
+                )
+            )
+        # Delete button
+        if self.enable_delete:
+            rendered.append(
+                (
+                    self.DELETE_OPTION_KEY,
+                    cast(FormattedText, [("class:red", f"[{self.delete_label}]")]),
                 )
             )
 
@@ -163,14 +185,14 @@ class MenuForm:
 
         match result:
             case KeyAction.BACK:
-                return None
+                return
             case KeyAction.CLEAR:
                 field.input_result = InputResult(value=None)
 
         if result.value != field.input_result.value:
             self._propagate_consumers(field.key)
         if result == KeyAction.CLEAR:
-            return None
+            return
 
         field.input_result.value = result.value
         field.input_result.display_value = result.display_value
@@ -179,8 +201,9 @@ class MenuForm:
         if not field.input_result.error:
             index = self.fields.index(field)
             field_count = len(self.fields)
-            if self._all_valid() and (index + 1) >= field_count:
-                self.current_key = self.SUBMIT_OPTION_KEY
+            if self._all_valid():
+                if (index + 1) >= field_count:
+                    self.current_key = self.SUBMIT_OPTION_KEY
             elif (index + 1) == len(self.fields):
                 self.current_key = self.fields[index].key
             else:

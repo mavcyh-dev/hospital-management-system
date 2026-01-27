@@ -210,6 +210,7 @@ class Appointment(Base):
     appointment_status_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("appointment_status.appointment_status_id")
     )
+    doctor_notes: Mapped[Optional[str]] = mapped_column(Text)
 
     created_by_profile_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("profile.profile_id")

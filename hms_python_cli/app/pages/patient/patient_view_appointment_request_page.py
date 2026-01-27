@@ -4,13 +4,21 @@ from enum import Enum
 from app.core.app import App
 from app.core.config import AppConfig
 from app.pages.core.base_page import BasePage
+from app.pages.patient.patient_tables import (
+    patient_display_appointment_requests_table,
+    patient_display_appointments_table,
+)
+from app.repositories.appointment_repository import AppointmentLoad
 from app.repositories.appointment_request_repository import AppointmentRequestLoad
 from app.ui.inputs.text_input import TextInput
 from app.ui.menu_form import InputResult, MenuField, MenuForm
 from app.ui.prompts import KeyAction, prompt_choice, prompt_success
-from app.validators import validate_date, validate_date_in_range, validate_time
-from rich.table import Table
-from rich.text import Text
+from app.validators import (
+    validate_date,
+    validate_date_in_range,
+    validate_time,
+    validate_time_interval,
+)
 
 
 class PageChoice(Enum):
@@ -38,6 +46,7 @@ class PatientViewAppointmentRequestPage(BasePage):
                     loaders=[
                         AppointmentRequestLoad.SPECIALTY,
                         AppointmentRequestLoad.PREFERRED_DOCTOR_WITH_PERSON,
+                        AppointmentRequestLoad.HANDLED_BY_PROFILE,
                     ],
                 )
                 if appointment_request is None:
@@ -48,7 +57,24 @@ class PatientViewAppointmentRequestPage(BasePage):
 
             self.clear()
             self.display_user_header(self.app)
-            self._display_appointment_request()
+            patient_display_appointment_requests_table(
+                self.console, self.appointment_request
+            )
+            if self.appointment_request.is_approved:
+                assert self.appointment_request.appointment_id is not None
+                appointment = self.app.repos.appointment.get(
+                    session,
+                    self.appointment_request.appointment_id,
+                    loaders=[
+                        AppointmentLoad.DOCTOR_WITH_PERSON,
+                        AppointmentLoad.CREATED_BY_PROFILE,
+                        AppointmentLoad.CANCELLED_BY_PROFILE,
+                    ],
+                )
+                assert appointment is not None
+                patient_display_appointments_table(
+                    self.console, appointment, title="Linked Appointment"
+                )
 
             choices = self._generate_choices()
 
@@ -108,8 +134,14 @@ class PatientViewAppointmentRequestPage(BasePage):
                             "Preferred Time (Date required)",
                             TextInput(
                                 self.app,
-                                "Preferred Time [HH:MM], 24HR",
-                                validators=validate_time,
+                                f"Preferred Time [HH:MM], 24HR ({AppConfig.appointment_timeslot_min_interval_minutes}-minute intervals)",
+                                validators=[
+                                    validate_time,
+                                    lambda x: validate_time_interval(
+                                        x,
+                                        AppConfig.appointment_timeslot_min_interval_minutes,
+                                    ),
+                                ],
                             ),
                             InputResult(
                                 value=(
@@ -132,7 +164,7 @@ class PatientViewAppointmentRequestPage(BasePage):
                 while True:
                     self.clear()
                     self.display_user_header(self.app)
-                    self._display_appointment_request()
+                    patient_display_appointment_requests_table(self.console, request)
                     data = menu_form.run()
                     if data is None:
                         continue
@@ -154,72 +186,22 @@ class PatientViewAppointmentRequestPage(BasePage):
                         self.app.repos.appointment_request.update(session, request)
                         break
 
-                if selected_choice == PageChoice.CANCEL_APPOINTMENT_REQUEST:
-                    with self.app.session_scope() as session:
-                        self.app.services.appointment.update_appointment_request_cancelled(
-                            session, self.appointment_request.appointment_request_id
-                        )
-                    prompt_success(
-                        self.console, "Appointment request successfully cancelled!"
+            if selected_choice == PageChoice.CANCEL_APPOINTMENT_REQUEST:
+                with self.app.session_scope() as session:
+                    self.app.services.appointment.update_appointment_request_cancelled(
+                        session, self.appointment_request.appointment_request_id
                     )
+                prompt_success(
+                    self.console, "Appointment request successfully cancelled!"
+                )
 
-                    continue
+                continue
 
             if selected_choice == PageChoice.VIEW_LINKED_APPOINTMENT:
                 assert self.appointment_request.appointment_id is not None
                 return PatientViewAppointmentPage(
                     self.app, self.appointment_request.appointment_id
                 )
-
-    def _display_appointment_request(self):
-        request = self.appointment_request
-
-        table = Table(title="Appointment Request", title_justify="left")
-        table.add_column("Status")
-        table.add_column("Created")
-        table.add_column("Specialty")
-        table.add_column("Reason")
-        table.add_column("Preferred Doctor")
-        table.add_column("Preferred Datetime")
-
-        table.add_row(
-            request.status_enum.display,
-            request.created_datetime.strftime("%Y-%m-%d"),
-            request.specialty.name,
-            request.reason,
-            (
-                request.preferred_doctor.full_name
-                if request.preferred_doctor
-                else Text("[empty]", style="italic dim")
-            ),
-            (
-                request.preferred_datetime.strftime("%Y-%m-%d %H:%M")
-                if request.preferred_datetime
-                else Text("[empty]", style="italic dim")
-            ),
-        )
-        self.print(table)
-
-        if self.appointment_request.is_rejected:
-            table = Table(title="Rejection Details", title_justify="left")
-            table.add_column("On Datetime")
-            table.add_column("Reason")
-            assert self.appointment_request.handled_datetime is not None
-            assert self.appointment_request.handling_notes is not None
-            table.add_row(
-                self.appointment_request.handled_datetime.strftime("%Y-%m-%d %H:%M"),
-                self.appointment_request.handling_notes,
-            )
-            self.print(table)
-
-        if self.appointment_request.is_cancelled:
-            table = Table(title="Cancellation Details", title_justify="left")
-            table.add_column("On Datetime")
-            assert self.appointment_request.handled_datetime is not None
-            table.add_row(
-                self.appointment_request.handled_datetime.strftime("%Y-%m-%d %H:%M"),
-            )
-            self.print(table)
 
     def _generate_choices(self):
         choices: list[tuple[PageChoice, str]] = []

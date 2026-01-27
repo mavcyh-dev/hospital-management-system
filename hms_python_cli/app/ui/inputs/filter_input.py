@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from typing import Any, Sequence
-from collections.abc import Sequence
-
-from rich.panel import Panel
 
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.inputs.input_result import InputResult
-from app.ui.prompts import prompt_choice, prompt_text, KeyAction
+from app.ui.prompts import KeyAction, prompt_choice, prompt_text
+from rich.panel import Panel
+from rich.text import Text
 
 
 @dataclass(frozen=True)
@@ -41,13 +40,15 @@ class FilterInput(BaseInput):
                 )
                 value_strings_list.append(value_string)
             concat_value_strings = ", ".join(value_strings_list)
+            concat_text = Text(concat_value_strings)
+            concat_text.truncate(5000, overflow="ellipsis")
 
             filtered = self.items
             if len(self.items) > 20:
                 self.console.print(
                     Panel(
-                        concat_value_strings,
-                        title=f"[underline]{self.label} ({len(filtered)})[/]",
+                        concat_text,
+                        title=f"{self.label} ({len(filtered)})",
                         title_align="left",
                         padding=(1, 1),
                     )
@@ -58,7 +59,8 @@ class FilterInput(BaseInput):
                     clearable=True,
                 )
                 if isinstance(raw, KeyAction):
-                    return InputResult(value=None)
+                    return raw
+
                 query = raw.strip().lower()
 
                 if query:

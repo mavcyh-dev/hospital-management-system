@@ -16,6 +16,10 @@ class PageChoice(Enum):
 
 
 class ReceptionistHomePage(BasePage):
+    @property
+    def title(self):
+        return "Receptionist Home"
+
     selected_choice: PageChoice | None = None
 
     def run(self) -> BasePage | None:
@@ -30,7 +34,7 @@ class ReceptionistHomePage(BasePage):
         )
 
         self.clear()
-        self.display_user_header(self.app)
+        self.display_logged_in_header(self.app)
         self._display_all_specialties_pending_appointment_requests()
 
         choices = [(choice, choice.value) for choice in PageChoice]

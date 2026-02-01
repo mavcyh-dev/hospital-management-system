@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from app.database.models import PatientProfile, Profile
 from app.lookups.enums import ProfileTypeEnum
 from app.repositories import BaseRepository, PatientProfileRepository, PersonRepository
@@ -51,10 +49,8 @@ class PatientService(BaseService[PatientProfile]):
         profile = Profile(
             person_id=person_id,
             profile_type_id=ProfileTypeEnum.PATIENT,
-            created_datetime=datetime.now(),
         )
-        session.add(profile)
-        session.flush()
+        self.profile_repo.add(session, profile)
 
         # Create PatientProfile
         patient_profile = PatientProfile(
@@ -71,15 +67,15 @@ class PatientService(BaseService[PatientProfile]):
     # UPDATE
     # -------------------------------------------------------------------------
 
-    def update_allergies(
+    def update_profile_information(
         self,
         session: Session,
-        profile_id: int,
+        patient_profile_id: int,
         medication_allergies: str | None,
     ) -> PatientProfile:
-        patient = self.patient_profile_repo.get(session, profile_id)
+        patient = self.patient_profile_repo.get(session, patient_profile_id)
         if not patient:
-            raise ValueError(f"Patient profile with id {profile_id} not found")
+            raise ValueError(f"Patient profile with id {patient_profile_id} not found")
 
         patient.medication_allergies = medication_allergies
         return self.patient_profile_repo.update(session, patient)
@@ -87,12 +83,12 @@ class PatientService(BaseService[PatientProfile]):
     def change_patient_status(
         self,
         session: Session,
-        profile_id: int,
+        patient_profile_id: int,
         is_active: bool,
     ) -> PatientProfile:
-        patient = self.patient_profile_repo.get(session, profile_id)
+        patient = self.patient_profile_repo.get(session, patient_profile_id)
         if not patient:
-            raise ValueError(f"Patient profile with id {profile_id} not found")
+            raise ValueError(f"Patient profile with id {patient_profile_id} not found")
 
         patient.profile.is_in_service = is_active
         session.flush()

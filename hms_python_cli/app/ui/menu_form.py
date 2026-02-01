@@ -188,23 +188,35 @@ class MenuForm:
                 return
             case KeyAction.CLEAR:
                 field.input_result = InputResult(value=None)
+                self._propagate_consumers(field.key)
+                return
 
-        if result.value != field.input_result.value:
-            self._propagate_consumers(field.key)
-        if result == KeyAction.CLEAR:
-            return
+        # Track if value changed
+        value_changed = result.value != field.input_result.value
 
+        # Update the field
         field.input_result.value = result.value
         field.input_result.display_value = result.display_value
         field.input_result.error = result.error
 
+        # Clear dependent fields if this field changed
+        if value_changed:
+            self._propagate_consumers(field.key)
+
+        # Auto-advance logic (only if no error)
         if not field.input_result.error:
-            index = self.fields.index(field)
-            field_count = len(self.fields)
-            if self._all_valid():
-                if (index + 1) >= field_count:
-                    self.current_key = self.SUBMIT_OPTION_KEY
-            elif (index + 1) == len(self.fields):
-                self.current_key = self.fields[index].key
-            else:
-                self.current_key = self.fields[index + 1].key
+            self._advance_to_next_field(field)
+
+    def _advance_to_next_field(self, current_field: MenuField) -> None:
+        """Move focus to the next field, or submit if at the end."""
+        current_index = self.fields.index(current_field)
+
+        # If there's a next field, go to it
+        if current_index + 1 < len(self.fields):
+            self.current_key = self.fields[current_index + 1].key
+        elif self._all_valid():
+            # Only go to submit if we're at the last field AND all valid
+            self.current_key = self.SUBMIT_OPTION_KEY
+        else:
+            # At last field but not all valid, stay here
+            self.current_key = current_field.key

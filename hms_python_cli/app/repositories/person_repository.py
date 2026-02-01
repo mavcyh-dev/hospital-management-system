@@ -41,13 +41,19 @@ class PersonRepository(BaseRepository[Person]):
         return list(session.scalars(stmt).all())
 
     def exists_by_profile_type(
-        self, session: Session, person_id: int, profile_type_id: int
+        self,
+        session: Session,
+        person_id: int,
+        profile_type_id: int,
+        is_in_service: bool = False,
     ) -> bool:
-        """Check if a profile type exists for given person_id."""
-        stmt = select(
-            exists().where(
-                Profile.person_id == person_id,
-                Profile.profile_type_id == profile_type_id,
-            )
-        )
+        conditions = [
+            Profile.person_id == person_id,
+            Profile.profile_type_id == profile_type_id,
+        ]
+
+        if is_in_service:
+            conditions.append(Profile.is_in_service.is_(True))
+
+        stmt = select(exists().where(*conditions))
         return bool(session.scalar(stmt))

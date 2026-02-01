@@ -21,6 +21,10 @@ class FieldKey(StrEnum):
 
 
 class LoginPage(BasePage):
+    @property
+    def title(self):
+        return "Login"
+
     fields: list[MenuField] | None = None
     profile_type: ProfileTypeEnum
 
@@ -29,6 +33,7 @@ class LoginPage(BasePage):
         self.profile_type = profile_type
 
     def run(self) -> BasePage | None:
+        from app.pages.admin.admin_home_page import AdminHomePage
         from app.pages.doctor.doctor_home_page import DoctorHomePage
         from app.pages.patient.patient_home_page import PatientHomePage
         from app.pages.receptionist.receptionist_home_page import ReceptionistHomePage
@@ -108,7 +113,7 @@ class LoginPage(BasePage):
                     case ProfileTypeEnum.RECEPTIONIST:
                         return ReceptionistHomePage(self.app)
                     case ProfileTypeEnum.ADMIN:
-                        return
+                        return AdminHomePage(self.app)
 
             except Exception as e:
                 prompt_error(self.console, f"Failed to login: {e}")
@@ -127,6 +132,8 @@ class LoginPage(BasePage):
                         self.app.session_scope,
                         self.app.services.user,
                         self.profile_type,
+                        user_is_in_service=True,
+                        profile_is_in_service=True,
                     ),
                 ),
             ),

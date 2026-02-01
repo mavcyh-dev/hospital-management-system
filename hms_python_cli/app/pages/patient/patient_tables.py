@@ -168,18 +168,6 @@ def patient_display_appointments_table(
             appointment.reason,
             appointment.doctor.full_name,
         ]
-        if display_one:
-            table = Table(title=title, title_justify="left", show_lines=True)
-            table.add_column("Name")
-            table.add_column("Office Phone Number")
-            table.add_row(
-                appointment.doctor.full_name,
-                (
-                    appointment.doctor.office_phone_number
-                    if appointment.doctor.office_phone_number
-                    else Text("[empty]", style="italic dim")
-                ),
-            )
         if display_scrolling:
             assert start_index is not None
             row.insert(0, str(start_index + offset + 1))
@@ -189,6 +177,20 @@ def patient_display_appointments_table(
 
     if display_one:
         (appointment,) = appointments
+        table = Table(title="Doctor Details", title_justify="left", show_lines=True)
+        table.add_column("Name")
+        table.add_column("Office Phone Number")
+        table.add_row(
+            appointment.doctor.full_name,
+            (
+                appointment.doctor.office_phone_number
+                if appointment.doctor.office_phone_number
+                else Text("[empty]", style="italic dim")
+            ),
+        )
+        console.print(table)
+        console.print("")
+
         if appointment.is_completed and appointment.prescriptions:
             patient_display_prescription_items_for_prescriptions_table(
                 console, appointment.prescriptions

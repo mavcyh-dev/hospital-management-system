@@ -4,7 +4,9 @@ from app.core.app import Repos, Services
 from app.core.config import AppConfig
 from app.database.models import (
     AdminProfile,
+    Appointment,
     DoctorProfile,
+    Medication,
     PatientProfile,
     Profile,
     ReceptionistProfile,
@@ -13,9 +15,11 @@ from app.database.models import (
 from app.database.seed.utils import (
     generate_random_appointment_requests_for_patients,
     simulate_action_appointment_requests,
+    simulate_action_appointments,
 )
 from app.lookups.enums import ProfileTypeEnum, SexEnum
 from faker import Faker
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 
@@ -58,8 +62,8 @@ def seed_default_users(
         session=session,
         username="doctor",
         plain_password="password",
-        first_name="John",
-        last_name="Smith",
+        first_name="Johnny",
+        last_name="Sins",
         date_of_birth=date(1980, 5, 15),
         primary_email="doctor@hospital.com",
         primary_phone_number="+65 9222 3333",
@@ -77,6 +81,14 @@ def seed_default_users(
         session,
         DoctorProfile(
             profile_id=doctor_profile.profile_id, office_phone_number="+65 6677 8899"
+        ),
+    )
+
+    doctor_profile = repos.profile.add(
+        session,
+        Profile(
+            person_id=doctor_user.person_id,
+            profile_type_id=ProfileTypeEnum.PATIENT,
         ),
     )
     doctor_patient_profile = repos.patient_profile.add(
@@ -136,7 +148,9 @@ def seed_default_users(
         "[seed] Simulating events for 'doctor', 'patient', 'receptionist', 'admin'..."
     )
     # "doctor" to have every specialty
-    specialties = repos.specialty.get_all(session, conditions=[Specialty.is_in_service])
+    specialties = repos.specialty.get_all(
+        session, conditions=[Specialty.is_in_service.is_(True)]
+    )
     if not specialties:
         raise ValueError("No specialties found! Ensure that lookup tables are seeded.")
     doctor_doctor_profile.specialties.extend(specialties)
@@ -162,4 +176,20 @@ def seed_default_users(
         appointment_requests,
         [receptionist_receptionist_profile],
         [doctor_doctor_profile],
+    )
+
+    stmt = select(Appointment).where(
+        or_(
+            Appointment.patient_profile_id == patient_patient_profile.profile_id,
+            Appointment.doctor_profile_id == doctor_doctor_profile.profile_id,
+        )
+    )
+    appointments = session.scalars(stmt).all()
+    medications = session.scalars(select(Medication)).all()
+    simulate_action_appointments(
+        session,
+        fake,
+        appointments,
+        medications,
+        AppConfig.appointment_min_days_from_start_allow_cancel,
     )

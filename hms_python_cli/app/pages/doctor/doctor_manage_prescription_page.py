@@ -17,6 +17,10 @@ class PageChoice(Enum):
 
 
 class DoctorManagePrescriptionPage(BasePage):
+    @property
+    def title(self):
+        return "Manage prescription"
+
     def __init__(
         self,
         app: App,
@@ -47,7 +51,7 @@ class DoctorManagePrescriptionPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
 
             if self.prescription_id is not None:
                 with self.app.session_scope() as session:

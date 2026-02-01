@@ -1,7 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 
 from app.core.config import AppConfig
+from app.database.models import Specialty
 from app.pages.core.base_page import BasePage
 from app.ui.inputs.doctor_by_specialty_input import DoctorBySpecialtyInput
 from app.ui.inputs.filter_input import FilterInput, FilterItem
@@ -25,6 +26,10 @@ class FieldKey(Enum):
 
 
 class PatientCreateAppointmentRequestPage(BasePage):
+    @property
+    def title(self):
+        return "Create appointment request"
+
     fields: list[MenuField] | None = None
 
     def run(self) -> BasePage | None:
@@ -36,7 +41,7 @@ class PatientCreateAppointmentRequestPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             data = menu_form.run()
 
             if data is None:
@@ -56,6 +61,8 @@ class PatientCreateAppointmentRequestPage(BasePage):
                         preferred_datetime = datetime.combine(
                             preferred_date, preferred_time
                         )
+                    elif preferred_date:
+                        preferred_datetime = datetime.combine(preferred_date, time.min)
 
                     self.app.services.appointment.create_appointment_request(
                         session=session,
@@ -77,6 +84,11 @@ class PatientCreateAppointmentRequestPage(BasePage):
                 continue
 
     def _init_fields(self) -> list[MenuField]:
+        with self.app.session_scope() as session:
+            specialties = self.app.repos.specialty.get_all(
+                session, conditions=[Specialty.is_in_service.is_(True)]
+            )
+
         return [
             MenuField(
                 FieldKey.SPECIALTY.value,
@@ -85,8 +97,8 @@ class PatientCreateAppointmentRequestPage(BasePage):
                     self.app,
                     FieldKey.SPECIALTY.value,
                     [
-                        FilterItem(value=id, filter_values=[name])
-                        for id, name in self.app.lookup_cache.get_all_specialties()
+                        FilterItem(value=s.specialty_id, filter_values=[s.name])
+                        for s in specialties
                     ],
                 ),
             ),

@@ -8,6 +8,10 @@ from app.ui.prompts import KeyAction, prompt_choice, prompt_continue_message
 
 
 class DoctorViewAllAppointmentsPage(BasePage):
+    @property
+    def title(self):
+        return "View all appointments"
+
     appointments: list[Appointment]
 
     items_per_scroll: int = 5
@@ -26,7 +30,7 @@ class DoctorViewAllAppointmentsPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
 
             if len(self.appointments) == 0:
                 prompt_continue_message(self.console, "No appointments.")

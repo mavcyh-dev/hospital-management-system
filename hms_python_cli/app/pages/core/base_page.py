@@ -17,6 +17,12 @@ class BasePage(ABC):
         self.app: App = app
         self.console: Console = app.console
 
+    @property
+    @abstractmethod
+    def title(self) -> str:
+        """Human-readable page title for navigation stack display."""
+        raise NotImplementedError
+
     @abstractmethod
     def run(self) -> Optional["BasePage"]:
         """
@@ -29,7 +35,7 @@ class BasePage(ABC):
 
     # Convenience methods for common operations
 
-    def display_user_header(self, app: App) -> None:
+    def display_logged_in_header(self, app: App) -> None:
         """Display the application header. Only applicable if logged in."""
         if (
             not app.current_user
@@ -44,8 +50,24 @@ class BasePage(ABC):
         last_name = c_person.last_name
         profile_type_name = app.current_profile_type.display
         self.console.print(
-            f"[bold blue]NYP HMS[/] | User [italic]{username}[/] as {profile_type_name} | {first_name} {last_name}\n"
+            f"[bold blue]NYP HMS[/] | User [italic]{username}[/] as {profile_type_name} Profile | {first_name} {last_name}"
         )
+        self.display_navigation_stack(app)
+        self.console.print("")
+
+    def display_navigation_stack(self, app: App) -> None:
+        segments = []
+        for i, page in enumerate(app._page_stack):
+            title = getattr(page, "title", "") or ""
+            if i == len(app._page_stack) - 1:
+                # Last item (current page)
+                segments.append(f"[underline]{title}[/]")
+            else:
+                # Earlier items
+                segments.append(f"[dim]{title}[/]")
+
+        breadcrumb = " [dim]>[/] ".join(segments)
+        self.console.print(breadcrumb)
 
     def clear(self):
         """Clear the console"""

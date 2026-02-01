@@ -122,7 +122,7 @@ class AppointmentRepository(BaseRepository[Appointment]):
         order_by_start_datetime_asc: bool | None = None,
     ) -> Sequence[Row[tuple[datetime, datetime, int, str]]]:
         """
-        For use by receptionists. Provides importance (urgency) of specialty in the instant.
+        For use by receptionists.
 
         :return: (start_datetime, end_datetime, specialty_id, room_name)
         :rtype: Sequence[Row[tuple[datetime, datetime, int, str]]]

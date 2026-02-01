@@ -11,23 +11,6 @@ if TYPE_CHECKING:
     from .profiles import DoctorProfile, PatientProfile
 
 
-class Medication(Base):
-    """Medication catalog - available medications"""
-
-    __tablename__ = "medication"
-
-    medication_id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    generic_name: Mapped[str] = mapped_column(Text)
-    is_in_service: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    # Relationships
-    prescription_items: Mapped[List["PrescriptionItem"]] = relationship(
-        "PrescriptionItem", back_populates="medication"
-    )
-
-
 class Prescription(Base):
     """Prescription - doctor prescribes medications to patient"""
 
@@ -88,4 +71,21 @@ class PrescriptionItem(Base):
     )
     medication: Mapped["Medication"] = relationship(
         "Medication", back_populates="prescription_items"
+    )
+
+
+class Medication(Base):
+    """Medication catalog - available medications"""
+
+    __tablename__ = "medication"
+
+    medication_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    generic_name: Mapped[str] = mapped_column(Text)
+    is_in_service: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Relationships
+    prescription_items: Mapped[List["PrescriptionItem"]] = relationship(
+        "PrescriptionItem", back_populates="medication"
     )

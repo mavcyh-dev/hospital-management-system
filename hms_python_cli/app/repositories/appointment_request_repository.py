@@ -157,7 +157,7 @@ class AppointmentRequestRepository(BaseRepository[AppointmentRequest]):
                     == AppointmentRequestStatusEnum.PENDING,
                 ),
             )
-            .where(Specialty.is_in_service)
+            .where(Specialty.is_in_service.is_(True))
             .group_by(Specialty.specialty_id)
             .order_by(
                 case((earliest_preferred_datetime == None, 1), else_=0),

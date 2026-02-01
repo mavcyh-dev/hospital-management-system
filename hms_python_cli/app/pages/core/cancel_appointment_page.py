@@ -14,6 +14,10 @@ class FieldKey(Enum):
 
 
 class CancelAppointmentPage(BasePage):
+    @property
+    def title(self):
+        return "Cancel appointment"
+
     fields: list[MenuField] | None = None
 
     def __init__(self, app: App, appointment_id: int):
@@ -50,7 +54,7 @@ class CancelAppointmentPage(BasePage):
 
             while True:
                 self.clear()
-                self.display_user_header(self.app)
+                self.display_logged_in_header(self.app)
                 patient_display_appointments_table(self.console, self.appointment)
                 data = menu_form.run()
                 if data is None:

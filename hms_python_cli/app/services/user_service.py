@@ -111,8 +111,9 @@ class UserService(BaseService[User]):
         return self.user_repo.update(session, user)
 
     # -------------------------------------------------------------------------
-    # DELETE / DEACTIVATE
+    # DELETE
     # -------------------------------------------------------------------------
+
     def delete_user(self, session: Session, user_id: int) -> None:
         """Delete user and associated person record."""
         user = self.user_repo.get(session, user_id)

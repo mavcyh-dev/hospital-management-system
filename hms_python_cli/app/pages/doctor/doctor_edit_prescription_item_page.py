@@ -15,6 +15,10 @@ class FieldKey(Enum):
 
 
 class DoctorEditPrescriptionItemPage(BasePage):
+    @property
+    def title(self):
+        return "Edit prescription item"
+
     fields: list[MenuField] | None = None
 
     def __init__(
@@ -48,7 +52,7 @@ class DoctorEditPrescriptionItemPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             data = menu_form.run()
 
             if data is None:

@@ -4,6 +4,7 @@ from enum import Enum
 
 from app.core.app import App
 from app.core.config import AppConfig
+from app.database.models import Specialty
 from app.lookups.enums import AppointmentStatusEnum
 from app.pages.core.base_page import BasePage
 from app.pages.receptionist.receptionist_tables import (
@@ -35,6 +36,10 @@ class FieldKey(Enum):
 
 
 class ReceptionistProcessAppointmentRequestPage(BasePage):
+    @property
+    def title(self):
+        return "Process appointment request"
+
     fields: list[MenuField] | None = None
 
     def __init__(self, app: App, appointment_request_id: int):
@@ -64,7 +69,7 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             receptionist_display_appointment_requests_table(
                 self.console, self.appointment_request, title="Appointment Request"
             )
@@ -160,6 +165,12 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
 
     def _init_fields(self) -> list[MenuField]:
         request = self.appointment_request
+
+        with self.app.session_scope() as session:
+            specialties = self.app.repos.specialty.get_all(
+                session, conditions=[Specialty.is_in_service.is_(True)]
+            )
+
         return [
             MenuField(
                 FieldKey.SPECIALTY.value,
@@ -168,8 +179,8 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
                     self.app,
                     FieldKey.SPECIALTY.value,
                     [
-                        FilterItem(value=id, filter_values=[name])
-                        for id, name in self.app.lookup_cache.get_all_specialties()
+                        FilterItem(value=s.specialty_id, filter_values=[s.name])
+                        for s in specialties
                     ],
                 ),
                 InputResult(
@@ -195,6 +206,7 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
                 FieldKey.REASON.value,
                 FieldKey.REASON.value,
                 TextInput(self.app, FieldKey.REASON.value),
+                InputResult(value=request.reason),
             ),
             MenuField(
                 FieldKey.DATE.value,
@@ -238,6 +250,14 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
                             x, AppConfig.appointment_timeslot_min_interval_minutes
                         ),
                     ],
+                ),
+            ),
+            MenuField(
+                FieldKey.ROOM_NAME.value,
+                f"{FieldKey.ROOM_NAME.value} [A.01.001]",
+                TextInput(
+                    self.app,
+                    FieldKey.ROOM_NAME.value,
                 ),
             ),
         ]

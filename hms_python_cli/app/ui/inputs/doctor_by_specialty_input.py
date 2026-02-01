@@ -1,6 +1,6 @@
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
-from app.ui.inputs.filter_input import FilterInput, FilterItem, KeyAction, InputResult
+from app.ui.inputs.filter_input import FilterInput, FilterItem, InputResult, KeyAction
 from app.ui.prompts import prompt_continue_message
 
 

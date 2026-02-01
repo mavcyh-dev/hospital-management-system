@@ -33,6 +33,10 @@ class FieldKey(Enum):
 
 
 class CreateUserAccountPage(BasePage):
+    @property
+    def title(self):
+        return "Create user account"
+
     fields: list[MenuField] | None = None
 
     def run(self) -> BasePage | None:
@@ -42,7 +46,7 @@ class CreateUserAccountPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             data = menu_form.run()
 
             if data is None:

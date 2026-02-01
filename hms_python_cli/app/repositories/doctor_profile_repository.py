@@ -1,16 +1,22 @@
 from typing import Sequence
 
-from app.database.models import DoctorProfile, Profile, Specialty
+from app.database.models import DoctorProfile, Person, Profile, Specialty
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.interfaces import LoaderOption
 
 from .base_repository import BaseRepository
 
 
 class DoctorProfileLoad:
-    PERSON = joinedload(DoctorProfile.profile).joinedload(Profile.person)
-    SPECIALTIES = joinedload(DoctorProfile.specialties)
+    PROFILE_WITH_PERSON_WITH_USER = (
+        joinedload(DoctorProfile.profile)
+        .joinedload(Profile.person)
+        .joinedload(Person.user)
+    )
+    PROFILE_WITH_PERSON = joinedload(DoctorProfile.profile).joinedload(Profile.person)
+    SPECIALTIES = selectinload(DoctorProfile.specialties)
+    APPOINTMENTS = selectinload(DoctorProfile.appointments)
 
 
 class DoctorProfileRepository(BaseRepository[DoctorProfile]):
@@ -75,7 +81,9 @@ class DoctorProfileRepository(BaseRepository[DoctorProfile]):
         )
 
         if active_only:
-            stmt = stmt.where(Profile.is_in_service, Specialty.is_in_service)
+            stmt = stmt.where(
+                Profile.is_in_service.is_(True), Specialty.is_in_service.is_(True)
+            )
 
         return list(
             session.scalars(stmt).unique()
@@ -90,7 +98,7 @@ class DoctorProfileRepository(BaseRepository[DoctorProfile]):
         stmt = (
             select(DoctorProfile)
             .join(DoctorProfile.profile)
-            .where(Profile.is_in_service)
+            .where(Profile.is_in_service.is_(True))
             .options(*loaders)
         )
         return list(session.scalars(stmt).unique())

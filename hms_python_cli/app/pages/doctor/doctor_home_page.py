@@ -10,23 +10,31 @@ from prompt_toolkit.formatted_text import FormattedText
 
 class PageChoice(Enum):
     VIEW_ALL_APPOINTMENTS = "View all appointments"
+    EDIT_PROFILE_INFORMATION = "Edit profile information"
     EDIT_PERSONAL_INFORMATION = "Edit personal information"
     LOGOUT = cast(FormattedText, [("class:red", "Logout")])
 
 
 class DoctorHomePage(BasePage):
+    @property
+    def title(self):
+        return "Doctor Home"
+
     selected_choice: PageChoice | None = None
 
     def run(self) -> BasePage | None:
         from app.pages.core.edit_personal_information_page import (
             EditPersonalInformationPage,
         )
+        from app.pages.doctor.doctor_edit_profile_information_page import (
+            DoctorEditProfileInformationPage,
+        )
         from app.pages.doctor.doctor_view_all_appointments_page import (
             DoctorViewAllAppointmentsPage,
         )
 
         self.clear()
-        self.display_user_header(self.app)
+        self.display_logged_in_header(self.app)
         doctor_display_appointments_table(
             self.console,
             self._retrieve_all_appointments(),
@@ -49,6 +57,8 @@ class DoctorHomePage(BasePage):
         match self.selected_choice:
             case PageChoice.VIEW_ALL_APPOINTMENTS:
                 return DoctorViewAllAppointmentsPage(self.app)
+            case PageChoice.EDIT_PROFILE_INFORMATION:
+                return DoctorEditProfileInformationPage(self.app)
             case PageChoice.EDIT_PERSONAL_INFORMATION:
                 return EditPersonalInformationPage(self.app)
             case PageChoice.LOGOUT:

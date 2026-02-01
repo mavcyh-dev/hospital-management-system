@@ -23,12 +23,16 @@ from app.validators import (
 
 class PageChoice(Enum):
     EDIT_PREFERRED_DATETIME = "Edit preferred datetime"
-    CANCEL_APPOINTMENT_REQUEST = "Cancel appointment request"
+    CANCEL_APPOINTMENT_REQUEST = "Cancel appointment request (irreversible)"
     VIEW_LINKED_APPOINTMENT = "View linked appointment"
     BACK = "Back"
 
 
 class PatientViewAppointmentRequestPage(BasePage):
+    @property
+    def title(self):
+        return "View appointment request"
+
     def __init__(self, app: App, appointment_request_id: int):
         super().__init__(app)
         self.appointment_request_id = appointment_request_id
@@ -56,9 +60,9 @@ class PatientViewAppointmentRequestPage(BasePage):
                 self.appointment_request = appointment_request
 
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             patient_display_appointment_requests_table(
-                self.console, self.appointment_request
+                self.console, self.appointment_request, title="Appointment Request"
             )
             if self.appointment_request.is_approved:
                 assert self.appointment_request.appointment_id is not None
@@ -163,7 +167,7 @@ class PatientViewAppointmentRequestPage(BasePage):
                 )
                 while True:
                     self.clear()
-                    self.display_user_header(self.app)
+                    self.display_logged_in_header(self.app)
                     patient_display_appointment_requests_table(self.console, request)
                     data = menu_form.run()
                     if data is None:

@@ -7,6 +7,10 @@ from rich.text import Text
 
 
 class ReceptionistSelectSpecialtyToWorkOnPage(BasePage):
+    @property
+    def title(self):
+        return "Select specialty to work on"
+
     items_per_scroll: int = 10
     scroll_offset: int = 0
     max_scroll_offset: int
@@ -28,7 +32,7 @@ class ReceptionistSelectSpecialtyToWorkOnPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
 
             if len(self.details) == 0:
                 prompt_continue_message(self.console, "No specialties.")

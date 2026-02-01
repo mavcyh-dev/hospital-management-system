@@ -31,6 +31,10 @@ class FieldKey(Enum):
 
 
 class EditPersonalInformationPage(BasePage):
+    @property
+    def title(self):
+        return "Edit personal information"
+
     fields: list[MenuField] | None = None
 
     def run(self) -> BasePage | None:
@@ -44,7 +48,7 @@ class EditPersonalInformationPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             data = menu_form.run()
 
             if data is None:

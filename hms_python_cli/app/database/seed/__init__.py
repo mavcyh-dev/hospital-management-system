@@ -1,9 +1,9 @@
 from app.core.app import Repos, Services
 from app.database.engine import Database
-from app.database.seed.default_users import seed_default_users
 from app.database.seed.lookups import seed_lookups
 from app.database.seed.medications import seed_medications
-from app.database.seed.random_users import seed_users_random
+from app.database.seed.users_default import seed_default_users
+from app.database.seed.users_random import seed_users_random
 
 
 def seed_all_with_random_users(

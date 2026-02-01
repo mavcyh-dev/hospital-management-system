@@ -3,8 +3,10 @@ import re
 from datetime import date, datetime, time
 from typing import Callable, ContextManager
 
+from app.database.models import Medication, Specialty
 from app.lookups.enums import ProfileTypeEnum
-from app.services.user_service import UserService
+from app.repositories import BaseRepository
+from app.services import UserService
 from app.ui.inputs.input_result import InputResult
 from sqlalchemy.orm import Session
 
@@ -117,7 +119,8 @@ def validate_user_exists_for_username(
         )
     else:
         return InputResult(
-            value=raw, error=None if exists else "Username does not exist"
+            value=raw,
+            error=None if exists else "Username does not exist",
         )
 
 
@@ -126,14 +129,65 @@ def validate_profile_exists_for_username(
     session_scope: Callable[[], ContextManager[Session]],
     user_service: UserService,
     profile_type: ProfileTypeEnum,
+    user_is_in_service: bool = False,
+    profile_is_in_service: bool = False,
 ) -> InputResult:
     with session_scope() as session:
         user = user_service.user_repo.get_by_username(session, username=raw)
         if not user:
             return InputResult(value=raw, error="Username does not exist")
+        elif user_is_in_service and not user.is_in_service:
+            return InputResult(value=raw, error="User account is deactivated")
         elif user_service.person_repo.exists_by_profile_type(
-            session, user.person_id, profile_type
+            session,
+            user.person_id,
+            profile_type.value,
+            is_in_service=profile_is_in_service,
         ):
             return InputResult(value=raw)
         else:
-            return InputResult(value=raw, error="Profile type not found for user")
+            return InputResult(
+                value=raw, error="Profile type not found or deactivated for user."
+            )
+
+
+def validate_medication_generic_name_exists(
+    raw: str,
+    session_scope: Callable[[], ContextManager[Session]],
+    medication_repo: BaseRepository[Medication],
+) -> InputResult:
+    with session_scope() as session:
+        medications = medication_repo.get_all(
+            session, conditions=[Medication.generic_name == raw]
+        )
+
+        if medications:
+            medication = medications[0]
+            return InputResult(
+                value=medication.medication_id,
+                display_value=medication.generic_name,
+                error="Medication generic name already exists.",
+            )
+        else:
+            return InputResult(value=raw)
+
+
+def validate_specialty_name_exists(
+    raw: str,
+    session_scope: Callable[[], ContextManager[Session]],
+    specialty_repo: BaseRepository[Specialty],
+) -> InputResult:
+    with session_scope() as session:
+        specialties = specialty_repo.get_all(
+            session, conditions=[Specialty.name == raw]
+        )
+
+        if specialties:
+            specialty = specialties[0]
+            return InputResult(
+                value=specialty.specialty_id,
+                display_value=specialty.name,
+                error="Specialty name already exists.",
+            )
+        else:
+            return InputResult(value=raw)

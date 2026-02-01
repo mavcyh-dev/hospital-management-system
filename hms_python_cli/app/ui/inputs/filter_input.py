@@ -4,7 +4,12 @@ from typing import Any, Sequence
 from app.core.app import App
 from app.ui.inputs.base_input import BaseInput
 from app.ui.inputs.input_result import InputResult
-from app.ui.prompts import KeyAction, prompt_choice, prompt_text
+from app.ui.prompts import (
+    KeyAction,
+    prompt_choice,
+    prompt_continue_message,
+    prompt_text,
+)
 from rich.panel import Panel
 from rich.text import Text
 
@@ -22,8 +27,6 @@ class FilterItem:
 class FilterInput(BaseInput):
     def __init__(self, app: App, label: str, items: Sequence[FilterItem]):
         super().__init__(app)
-        if not items:
-            raise ValueError("FilterInput requires at least one FilterItem.")
         self.label = label
         self.items = list(items)
 
@@ -31,6 +34,10 @@ class FilterInput(BaseInput):
         self, default: InputResult | None = None, consumed: InputResult | None = None
     ):
         items = self.items
+
+        if not items:
+            prompt_continue_message(self.app.console, "No selectable options.")
+            return InputResult(value=None)
 
         while True:
             value_strings_list = []

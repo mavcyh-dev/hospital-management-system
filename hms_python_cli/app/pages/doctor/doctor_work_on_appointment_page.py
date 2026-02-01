@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 from enum import Enum
 
 from app.core.app import App
+from app.core.config import AppConfig
 from app.pages.core.base_page import BasePage
 from app.pages.doctor.doctor_tables import doctor_display_appointments_table
 from app.repositories.appointment_repository import AppointmentLoad
@@ -12,11 +14,15 @@ class PageChoice(Enum):
     MANAGE_PRESCRIPTION = "Manage prescription"
     MARK_AS_COMPLETED = "Mark as completed"
     MARK_AS_MISSED = "Mark as missed"
-    CANCEL_APPOINTMENT = "Cancel appointment (>2 days from start)"
+    CANCEL_APPOINTMENT = f"Cancel appointment (>{AppConfig.appointment_min_days_from_start_allow_cancel} days from start)"
     BACK = "Back"
 
 
 class DoctorWorkOnAppointmentPage(BasePage):
+    @property
+    def title(self):
+        return "Work on appointment"
+
     def __init__(self, app: App, appointment_id: int):
         super().__init__(app)
         self.appointment_id = appointment_id
@@ -46,7 +52,7 @@ class DoctorWorkOnAppointmentPage(BasePage):
                 self.appointment = appointment
 
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             doctor_display_appointments_table(
                 self.console, self.appointment, title="Appointment"
             )
@@ -149,6 +155,16 @@ class DoctorWorkOnAppointmentPage(BasePage):
                     ),
                 ]
             )
+            if self.appointment.start_datetime >= (
+                datetime.now()
+                + timedelta(days=AppConfig.appointment_min_days_from_start_allow_cancel)
+            ):
+                choices.append(
+                    (
+                        PageChoice.CANCEL_APPOINTMENT,
+                        PageChoice.CANCEL_APPOINTMENT.value,
+                    )
+                )
 
         if len(choices) == 0:
             choices.append((PageChoice.BACK, PageChoice.BACK.value))

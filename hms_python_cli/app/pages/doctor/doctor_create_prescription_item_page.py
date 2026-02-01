@@ -1,6 +1,7 @@
 from enum import Enum
 
 from app.core.app import App
+from app.database.models import Medication
 from app.pages.core.base_page import BasePage
 from app.ui.inputs.filter_input import FilterInput, FilterItem
 from app.ui.inputs.text_input import TextInput
@@ -14,6 +15,10 @@ class FieldKey(Enum):
 
 
 class DoctorCreatePrescriptionItemPage(BasePage):
+    @property
+    def title(self):
+        return "Create prescription item"
+
     fields: list[MenuField] | None = None
 
     def __init__(
@@ -56,7 +61,7 @@ class DoctorCreatePrescriptionItemPage(BasePage):
 
         while True:
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             data = menu_form.run()
 
             if data is None:
@@ -89,7 +94,9 @@ class DoctorCreatePrescriptionItemPage(BasePage):
 
     def _init_fields(self) -> list[MenuField]:
         with self.app.session_scope() as session:
-            medications = self.app.repos.medication.get_all(session)
+            medications = self.app.repos.medication.get_all(
+                session, conditions=[Medication.is_in_service.is_(True)]
+            )
 
         return [
             MenuField(

@@ -34,7 +34,7 @@ def extract_medications(input_path: Path):
 
             # Retired: 1 → inactive
             is_retired = row.get("IS_RETIRED", "").strip()
-            is_in_service = is_retired == "0"
+            is_in_service = is_retired != "1"
 
             # Deduplicate by name, keeping the "active" version if any exist
             if full_generic not in medications:

@@ -24,6 +24,10 @@ class PageChoice(Enum):
 
 
 class ReceptionistWorkOnAppointmentRequestPage(BasePage):
+    @property
+    def title(self):
+        return "Work on appointment request"
+
     def __init__(self, app: App, appointment_request_id: int):
         super().__init__(app)
         self.appointment_request_id = appointment_request_id
@@ -49,7 +53,7 @@ class ReceptionistWorkOnAppointmentRequestPage(BasePage):
                 self.appointment_request = appointment_request
 
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             receptionist_display_appointment_requests_table(
                 self.console, self.appointment_request, title="Appointment Request"
             )
@@ -106,7 +110,7 @@ class ReceptionistWorkOnAppointmentRequestPage(BasePage):
                 )
                 while True:
                     self.clear()
-                    self.display_user_header(self.app)
+                    self.display_logged_in_header(self.app)
                     receptionist_display_appointment_requests_table(
                         self.console, request, title="Appointment Request"
                     )

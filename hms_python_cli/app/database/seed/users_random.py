@@ -1,4 +1,3 @@
-import random
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import List, Sequence
@@ -6,7 +5,9 @@ from typing import List, Sequence
 from app.core.config import AppConfig
 from app.database.models import (
     AdminProfile,
+    Appointment,
     DoctorProfile,
+    Medication,
     PatientProfile,
     Person,
     Profile,
@@ -17,8 +18,9 @@ from app.database.models import (
 from app.database.seed.utils import (
     generate_random_appointment_requests_for_patients,
     simulate_action_appointment_requests,
+    simulate_action_appointments,
 )
-from app.lookups.enums import ProfileTypeEnum
+from app.lookups.enums import ProfileTypeEnum, SexEnum
 from faker import Faker
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -102,7 +104,7 @@ def seed_users_random(
     session.add_all(appointment_requests)
     session.flush()
 
-    print("[seed] Simulating actions on appointment requests...")
+    print("[seed] Simulating actions on created appointment requests...")
     simulate_action_appointment_requests(
         session,
         fake,
@@ -111,6 +113,13 @@ def seed_users_random(
         doctors,
         handled_datetime_min_days_bef_preferred=21,
         handled_datetime_max_days_aft_created=7,
+    )
+
+    print("[seed] Simulating actions on created appointments...")
+    appointments = session.scalars(select(Appointment)).all()
+    medications = session.scalars(select(Medication)).all()
+    simulate_action_appointments(
+        session, fake, appointments, medications, max_days_before_cancellation=2
     )
 
 
@@ -158,8 +167,9 @@ def _create_person_and_profile(
     person = Person(
         first_name=fake.first_name(),
         last_name=fake.last_name(),
+        sex=fake.random_element([SexEnum.MALE.value, SexEnum.FEMALE.value]),
         date_of_birth=date_of_birth,
-        primary_email=f"{username}{random.randint(1,10000)}@example.com",
+        primary_email=f"{username}@example.com",
         primary_phone_number=fake.numerify("+65 9### ####"),
         primary_home_address=fake.address(),
     )
@@ -173,11 +183,12 @@ def _create_person_and_profile(
     DEVELOPMENT_PASSWORD_HASH = (
         "$2b$12$Z42FRYpF93pYTad6xVZcY.JsMq5rM2oT65DTQNKxBv9sxgBXd8ThW"
     )
+    created_datetime = fake.date_between_dates(min_creation_date, current)
     user = User(
         person_id=person.person_id,
         username=username,
         password_hash=DEVELOPMENT_PASSWORD_HASH,
-        created_datetime=fake.date_between_dates(min_creation_date, current),
+        created_datetime=created_datetime,
     )
     session.add(user)
     session.flush()
@@ -185,6 +196,7 @@ def _create_person_and_profile(
     profile = Profile(
         person_id=person.person_id,
         profile_type_id=profile_type,
+        created_datetime=created_datetime,
     )
     session.add(profile)
     session.flush()

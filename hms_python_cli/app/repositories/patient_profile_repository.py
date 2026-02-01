@@ -7,24 +7,25 @@ from app.database.models import (
     Profile,
 )
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.interfaces import LoaderOption
 
 from .base_repository import BaseRepository
 
 
 class PatientProfileLoad:
-    PERSON = joinedload(PatientProfile.profile).joinedload(Profile.person)
-    APPOINTMENT_REQUESTS = joinedload(PatientProfile.appointment_requests)
+    PROFILE_WITH_PERSON = joinedload(PatientProfile.profile).joinedload(Profile.person)
+    APPOINTMENT_REQUESTS = selectinload(PatientProfile.appointment_requests)
     APPOINTMENT_REQUESTS_FULL = (
         joinedload(PatientProfile.appointment_requests).joinedload(
             AppointmentRequest.specialty
         ),
-        joinedload(PatientProfile.appointment_requests)
+        selectinload(PatientProfile.appointment_requests)
         .joinedload(AppointmentRequest.preferred_doctor)
         .joinedload(DoctorProfile.profile)
         .joinedload(Profile.person),
     )
+    APPOINTMENTS = selectinload(PatientProfile.appointments)
 
 
 class PatientProfileRepository(BaseRepository[PatientProfile]):
@@ -75,7 +76,7 @@ class PatientProfileRepository(BaseRepository[PatientProfile]):
         stmt = (
             select(PatientProfile)
             .join(PatientProfile.profile)
-            .where(Profile.is_in_service)
+            .where(Profile.is_in_service.is_(True))
             .options(*loaders)
         )
         return list(session.scalars(stmt))

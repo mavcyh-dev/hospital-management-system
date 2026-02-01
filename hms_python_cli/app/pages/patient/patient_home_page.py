@@ -16,11 +16,16 @@ class PageChoice(Enum):
     CREATE_APPOINTMENT_REQUEST = "Create appointment request"
     VIEW_ALL_APPOINTMENT_REQUESTS = "View all appointment requests"
     VIEW_ALL_APPOINTMENTS = "View all appointments"
+    EDIT_PROFILE_INFORMATION = "Edit profile information"
     EDIT_PERSONAL_INFORMATION = "Edit personal information"
     LOGOUT = cast(FormattedText, [("class:red", "Logout")])
 
 
 class PatientHomePage(BasePage):
+    @property
+    def title(self):
+        return "Patient Home"
+
     selected_choice: PageChoice | None = None
 
     def run(self) -> BasePage | None:
@@ -30,6 +35,9 @@ class PatientHomePage(BasePage):
         from app.pages.patient.patient_create_appointment_request_page import (
             PatientCreateAppointmentRequestPage,
         )
+        from app.pages.patient.patient_edit_profile_information_page import (
+            PatientEditProfileInformationPage,
+        )
         from app.pages.patient.patient_view_all_appointment_requests_page import (
             PatientViewAllAppointmentRequestsPage,
         )
@@ -38,7 +46,7 @@ class PatientHomePage(BasePage):
         )
 
         self.clear()
-        self.display_user_header(self.app)
+        self.display_logged_in_header(self.app)
         patient_display_appointment_requests_table(
             self.console,
             self._retrieve_all_appointment_requests(),
@@ -71,6 +79,8 @@ class PatientHomePage(BasePage):
                 return PatientViewAllAppointmentRequestsPage(self.app)
             case PageChoice.VIEW_ALL_APPOINTMENTS:
                 return PatientViewAllAppointmentsPage(self.app)
+            case PageChoice.EDIT_PROFILE_INFORMATION:
+                return PatientEditProfileInformationPage(self.app)
             case PageChoice.EDIT_PERSONAL_INFORMATION:
                 return EditPersonalInformationPage(self.app)
             case PageChoice.LOGOUT:

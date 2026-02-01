@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from app.core.app import App
+from app.core.config import AppConfig
 from app.pages.core.base_page import BasePage
 from app.pages.patient.patient_tables import patient_display_appointments_table
 from app.repositories.appointment_repository import AppointmentLoad
@@ -9,11 +10,15 @@ from app.ui.prompts import KeyAction, prompt_choice
 
 
 class PageChoice(Enum):
-    CANCEL_APPOINTMENT = "Cancel appointment (>2 days from start)"
+    CANCEL_APPOINTMENT = f"Cancel appointment (>{AppConfig.appointment_min_days_from_start_allow_cancel} days from start)"
     BACK = "Back"
 
 
 class PatientViewAppointmentPage(BasePage):
+    @property
+    def title(self):
+        return "View appointment"
+
     def __init__(self, app: App, appointment_id: int):
         super().__init__(app)
         self.appointment_id = appointment_id
@@ -40,7 +45,7 @@ class PatientViewAppointmentPage(BasePage):
                 self.appointment = appointment
 
             self.clear()
-            self.display_user_header(self.app)
+            self.display_logged_in_header(self.app)
             patient_display_appointments_table(
                 self.console, self.appointment, title="Appointment"
             )
@@ -65,7 +70,10 @@ class PatientViewAppointmentPage(BasePage):
     def _generate_choices(self):
         choices: list[tuple[PageChoice, str]] = []
         if self.appointment.is_scheduled:
-            if self.appointment.start_datetime >= (datetime.now() + timedelta(days=2)):
+            if self.appointment.start_datetime >= (
+                datetime.now()
+                + timedelta(days=AppConfig.appointment_min_days_from_start_allow_cancel)
+            ):
                 choices.append(
                     (
                         PageChoice.CANCEL_APPOINTMENT,
@@ -76,7 +84,7 @@ class PatientViewAppointmentPage(BasePage):
                 choices.append(
                     (
                         PageChoice.BACK,
-                        f"{PageChoice.BACK.value} (Cancellation must be >2 days from start)",
+                        f"{PageChoice.BACK.value} (Cancellation must be >{AppConfig.appointment_min_days_from_start_allow_cancel} days from start)",
                     )
                 )
         if len(choices) == 0:

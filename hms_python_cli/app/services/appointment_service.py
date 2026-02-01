@@ -1,10 +1,16 @@
 from datetime import datetime
 
-from app.database.models import Appointment, AppointmentRequest
+from app.database.models import (
+    Appointment,
+    AppointmentRequest,
+    Profile,
+    ReceptionistProfile,
+)
 from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
 from app.repositories import (
     AppointmentRepository,
     AppointmentRequestRepository,
+    BaseRepository,
     DoctorProfileRepository,
     PatientProfileRepository,
     PersonRepository,
@@ -20,8 +26,10 @@ class AppointmentService(BaseService[Appointment]):
         self,
         appointment_repo: AppointmentRepository,
         appointment_request_repo: AppointmentRequestRepository,
+        profile_repo: BaseRepository[Profile],
         patient_profile_repo: PatientProfileRepository,
         doctor_profile_repo: DoctorProfileRepository,
+        receptionist_profile_repo: BaseRepository[ReceptionistProfile],
         user_repo: UserRepository,
         person_repo: PersonRepository,
         prescription_repo: PrescriptionRepository,

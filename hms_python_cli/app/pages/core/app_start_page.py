@@ -20,6 +20,10 @@ class PageChoice(Enum):
 
 
 class AppStartPage(BasePage):
+    @property
+    def title(self):
+        return "App Start"
+
     profile_type: ProfileTypeEnum | None
     selected_choice: PageChoice | None = None
 

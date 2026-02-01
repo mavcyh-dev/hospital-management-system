@@ -34,7 +34,8 @@ class PatientViewAppointmentPage(BasePage):
                     loaders=[
                         AppointmentLoad.SPECIALTY,
                         AppointmentLoad.DOCTOR_WITH_PERSON,
-                        AppointmentLoad.CREATED_BY_PROFILE,
+                        AppointmentLoad.CREATED_BY_PROFILE_WITH_PERSON,
+                        *AppointmentLoad.CREATED_BY_PROFILE_WITH_POSSIBLE_PROFILES,
                         AppointmentLoad.CANCELLED_BY_PROFILE,
                     ],
                 )

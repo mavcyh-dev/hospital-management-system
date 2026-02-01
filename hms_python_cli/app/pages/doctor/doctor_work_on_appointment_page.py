@@ -15,6 +15,7 @@ class PageChoice(Enum):
     MARK_AS_COMPLETED = "Mark as completed"
     MARK_AS_MISSED = "Mark as missed"
     CANCEL_APPOINTMENT = f"Cancel appointment (>{AppConfig.appointment_min_days_from_start_allow_cancel} days from start)"
+    CREATE_APPOINTMENT_FOR_PATIENT = "Create appointment for patient"
     BACK = "Back"
 
 
@@ -29,6 +30,9 @@ class DoctorWorkOnAppointmentPage(BasePage):
 
     def run(self) -> BasePage | None:
         from app.pages.core.cancel_appointment_page import CancelAppointmentPage
+        from app.pages.doctor.doctor_create_appointment_for_patient_page import (
+            DoctorCreateAppointmentForPatientPage,
+        )
         from app.pages.doctor.doctor_manage_prescription_page import (
             DoctorManagePrescriptionPage,
         )
@@ -126,6 +130,11 @@ class DoctorWorkOnAppointmentPage(BasePage):
             if selected_choice == PageChoice.CANCEL_APPOINTMENT:
                 return CancelAppointmentPage(self.app, self.appointment_id)
 
+            if selected_choice == PageChoice.CREATE_APPOINTMENT_FOR_PATIENT:
+                return DoctorCreateAppointmentForPatientPage(
+                    self.app, self.appointment.patient_profile_id
+                )
+
     def _generate_choices(self):
         choices: list[tuple[PageChoice, str]] = []
         if not self.appointment.is_missed:
@@ -165,6 +174,13 @@ class DoctorWorkOnAppointmentPage(BasePage):
                         PageChoice.CANCEL_APPOINTMENT.value,
                     )
                 )
+
+        choices.append(
+            (
+                PageChoice.CREATE_APPOINTMENT_FOR_PATIENT,
+                PageChoice.CREATE_APPOINTMENT_FOR_PATIENT.value,
+            )
+        )
 
         if len(choices) == 0:
             choices.append((PageChoice.BACK, PageChoice.BACK.value))

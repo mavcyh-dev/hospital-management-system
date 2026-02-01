@@ -1,6 +1,7 @@
 from typing import Sequence
 
 from app.database.models import Appointment, AppointmentRequest, Prescription
+from app.lookups.enums import ProfileTypeEnum
 from rich.console import Console, RenderableType
 from rich.table import Table
 from rich.text import Text
@@ -177,6 +178,19 @@ def patient_display_appointments_table(
 
     if display_one:
         (appointment,) = appointments
+        if appointment.created_by.type_enum == ProfileTypeEnum.DOCTOR:
+            table = Table(title="Created by", title_justify="left", show_lines=True)
+            table.add_column("Name")
+            table.add_column("Office Phone Number")
+
+            assert appointment.created_by.doctor_profile is not None
+            table.add_row(
+                appointment.created_by.person.full_name,
+                appointment.created_by.doctor_profile.office_phone_number,
+            )
+            console.print(table)
+            console.print("")
+
         table = Table(title="Doctor Details", title_justify="left", show_lines=True)
         table.add_column("Name")
         table.add_column("Office Phone Number")

@@ -17,7 +17,7 @@ class PatientProfileLoad:
     PROFILE_WITH_PERSON = joinedload(PatientProfile.profile).joinedload(Profile.person)
     APPOINTMENT_REQUESTS = selectinload(PatientProfile.appointment_requests)
     APPOINTMENT_REQUESTS_FULL = (
-        joinedload(PatientProfile.appointment_requests).joinedload(
+        selectinload(PatientProfile.appointment_requests).joinedload(
             AppointmentRequest.specialty
         ),
         selectinload(PatientProfile.appointment_requests)

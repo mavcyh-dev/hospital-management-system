@@ -16,6 +16,7 @@ from app.validators import (
     validate_email,
     validate_password,
     validate_phone_number,
+    validate_user_exists_for_username,
 )
 from sqlalchemy.orm import Session
 
@@ -73,7 +74,13 @@ class CreateUserAccountPage(BasePage):
             MenuField(
                 FieldKey.USERNAME.value,
                 FieldKey.USERNAME.value,
-                TextInput(self.app, FieldKey.USERNAME.value),
+                TextInput(
+                    self.app,
+                    FieldKey.USERNAME.value,
+                    validators=lambda x: validate_user_exists_for_username(
+                        x, self.app.session_scope, self.app.services.user, inverse=True
+                    ),
+                ),
             ),
             MenuField(
                 FieldKey.PASSWORD.value,

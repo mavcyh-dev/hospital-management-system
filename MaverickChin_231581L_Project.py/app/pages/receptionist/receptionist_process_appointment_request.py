@@ -5,7 +5,7 @@ from enum import Enum
 from app.core.app import App
 from app.core.config import AppConfig
 from app.database.models import Specialty
-from app.lookups.enums import AppointmentStatusEnum
+from app.lookups.enums import AppointmentRequestStatusEnum, AppointmentStatusEnum
 from app.pages.core.base_page import BasePage
 from app.pages.receptionist.receptionist_tables import (
     receptionist_display_appointment_requests_table,
@@ -145,7 +145,7 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
                         date, data[FieldKey.START_TIME.value]
                     )
                     end_datetime = datetime.combine(date, data[FieldKey.END_TIME.value])
-                    self.app.services.appointment.create_appointment(
+                    appointment = self.app.services.appointment.create_appointment(
                         session,
                         start_datetime=start_datetime,
                         end_datetime=end_datetime,
@@ -155,6 +155,13 @@ class ReceptionistProcessAppointmentRequestPage(BasePage):
                         room_name=data[FieldKey.ROOM_NAME.value],
                         reason=data[FieldKey.REASON.value],
                         created_by_profile_id=self.app.current_person.profile_id,
+                    )
+                    self.appointment_request.appointment_request_status_id = (
+                        AppointmentRequestStatusEnum.APPROVED.value
+                    )
+                    self.appointment_request.appointment_id = appointment.appointment_id
+                    self.app.repos.appointment_request.update(
+                        session, self.appointment_request
                     )
                     prompt_success(self.console, "Appointment created successfully!")
                     return

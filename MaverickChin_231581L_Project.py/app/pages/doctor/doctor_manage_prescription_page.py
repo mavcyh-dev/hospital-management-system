@@ -31,8 +31,7 @@ class DoctorManagePrescriptionPage(BasePage):
         super().__init__(app)
         self.prescription_id = prescription_id
         self.appointment_id = appointment_id
-        self.potential_prescription_changes = False
-        self.potential_prescriptions_added = None
+        self.prescription = None
 
     def run(self) -> BasePage | None:
         from app.pages.doctor.doctor_create_prescription_item_page import (
@@ -53,27 +52,6 @@ class DoctorManagePrescriptionPage(BasePage):
             self.clear()
             self.display_logged_in_header(self.app)
 
-            if self.prescription_id is not None:
-                with self.app.session_scope() as session:
-                    prescription = self.app.repos.prescription.get(
-                        session,
-                        self.prescription_id,
-                        loaders=[PrescriptionLoad.PRESCRIPTION_ITEMS],
-                    )
-                    if prescription is None:
-                        if self.potential_prescription_changes:
-                            return
-                        else:
-                            raise ValueError(
-                                f"Prescription id {self.prescription_id} does not exist."
-                            )
-
-                    self.prescription = prescription
-
-                    doctor_display_prescription_items_for_prescriptions_table(
-                        self.console, [self.prescription], show_number=True
-                    )
-
             if self.appointment_id is not None:
                 with self.app.session_scope() as session:
                     appointment = self.app.repos.appointment.get(
@@ -92,19 +70,30 @@ class DoctorManagePrescriptionPage(BasePage):
                         )
                     self.appointment = appointment
 
-                    if (
-                        self.potential_prescription_changes
-                        and appointment.prescriptions
-                    ):
-                        self.potential_prescriptions_added = appointment.prescriptions
-                        doctor_display_prescription_items_for_prescriptions_table(
-                            self.console,
-                            [appointment.prescriptions[0]],
-                            show_number=True,
+                if self.appointment.prescriptions:
+                    self.prescription = self.appointment.prescriptions[0]
+                    doctor_display_prescription_items_for_prescriptions_table(
+                        self.console,
+                        [self.prescription],
+                        show_number=True,
+                    )
+                else:
+                    self.prescription = None
+                    self.print(Panel("No prescription linked to appointment."))
+                    self.print("")
+
+            if self.prescription_id is not None:
+                with self.app.session_scope() as session:
+                    prescription = self.app.repos.prescription.get(
+                        session,
+                        self.prescription_id,
+                        loaders=[PrescriptionLoad.PRESCRIPTION_ITEMS],
+                    )
+                    if prescription is None:
+                        raise ValueError(
+                            f"Prescription item {self.prescription_id} does not exist."
                         )
-                    else:
-                        self.print(Panel("No prescription linked to appointment."))
-                        self.print("")
+                    self.prescription = prescription
 
             choices = self._generate_choices()
 
@@ -126,12 +115,10 @@ class DoctorManagePrescriptionPage(BasePage):
                         self.app, prescription_id=self.prescription_id
                     )
                 else:
-                    self.potential_prescription_changes = True
                     return DoctorCreatePrescriptionItemPage(
                         self.app, appointment_id=self.appointment_id
                     )
             else:
-                self.potential_prescription_changes = True
                 return DoctorEditPrescriptionItemPage(self.app, selected_choice)
 
     def _generate_choices(self):
@@ -139,15 +126,10 @@ class DoctorManagePrescriptionPage(BasePage):
             tuple[int | Literal[PageChoice.CREATE_NEW_PRESCRIPTION_ITEM], str]
         ] = []
 
-        if self.prescription_id:
+        if self.prescription:
             choices = [
                 (item.prescription_item_id, f"No. {idx + 1}")
                 for idx, item in enumerate(self.prescription.items)
-            ]
-        if self.potential_prescriptions_added:
-            choices = [
-                (item.prescription_item_id, f"No. {idx + 1}")
-                for idx, item in enumerate(self.potential_prescriptions_added[0].items)
             ]
         choices.append(
             (

@@ -1,12 +1,12 @@
 from app.database.models import Appointment, Prescription, PrescriptionItem
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .base_repository import BaseRepository
 
 
 class PrescriptionLoad:
-    PRESCRIPTION_ITEMS = joinedload(Prescription.items)
+    PRESCRIPTION_ITEMS = selectinload(Prescription.items)
     APPOINTMENT = joinedload(Prescription.appointment)
 
 
@@ -87,10 +87,12 @@ class PrescriptionRepository(BaseRepository[Prescription]):
             )
         mark_prescription_for_deletion = False
         prescription = prescription_item.prescription
+
         if prescription.appointment is not None:
             if len(prescription.appointment.prescriptions) <= 1:
-                mark_prescription_for_deletion = True
+                mark_prescription_for_deletion = False
         session.delete(prescription_item)
+
         if mark_prescription_for_deletion:
             session.delete(prescription)
         session.flush()

@@ -77,7 +77,7 @@ class AppointmentService(BaseService[Appointment]):
         room_name: str,
         reason: str,
         created_by_profile_id: int,
-    ) -> Appointment | None:
+    ) -> Appointment:
 
         appointment = Appointment(
             start_datetime=start_datetime,

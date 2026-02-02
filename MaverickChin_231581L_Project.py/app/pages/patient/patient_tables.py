@@ -254,7 +254,7 @@ def patient_display_prescription_items_for_prescriptions_table(
                 ),
             ]
             if show_number:
-                row.insert(0, f"No. {idx+1}")
+                row.insert(0, f"{idx+1}")
             table.add_row(*row)
         console.print(table)
         console.print("")

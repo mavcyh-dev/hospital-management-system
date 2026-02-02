@@ -39,7 +39,7 @@ class AppointmentLoad:
     CANCELLED_BY_PROFILE = joinedload(Appointment.cancelled_by)
     PRESCRIPTION_WITH_ITEMS_WITH_MEDICATION = (
         joinedload(Appointment.prescriptions)
-        .joinedload(Prescription.items)
+        .selectinload(Prescription.items)
         .joinedload(PrescriptionItem.medication)
     )
 

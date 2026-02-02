@@ -3,6 +3,7 @@ from enum import Enum
 from app.core.app import App
 from app.database.models import Medication
 from app.pages.core.base_page import BasePage
+from app.repositories.appointment_repository import AppointmentLoad
 from app.ui.inputs.filter_input import FilterInput, FilterItem
 from app.ui.inputs.text_input import TextInput
 from app.ui.menu_form import KeyAction, MenuField, MenuForm
@@ -40,10 +41,34 @@ class DoctorCreatePrescriptionItemPage(BasePage):
                 "DoctorCreatePrescriptionItemPage should only receive either the prescription_id, or appointment_id if there is not prescription yet."
             )
 
+        if self.appointment_id is not None:
+            with self.app.session_scope() as session:
+                appointment = self.app.repos.appointment.get(
+                    session,
+                    self.appointment_id,
+                    loaders=[
+                        AppointmentLoad.SPECIALTY,
+                        AppointmentLoad.PATIENT_WITH_PERSON,
+                        AppointmentLoad.CREATED_BY_PROFILE,
+                        AppointmentLoad.PRESCRIPTION_WITH_ITEMS_WITH_MEDICATION,
+                    ],
+                )
+                if appointment is None:
+                    raise ValueError(
+                        f"Appointment id {self.appointment_id} does not exist."
+                    )
+                self.appointment = appointment
+
+                if self.appointment.prescriptions:
+                    self.prescription = self.appointment.prescriptions[0]
+                else:
+                    self.prescription = None
+
         if self.prescription_id is not None:
             with self.app.session_scope() as session:
                 prescription = self.app.repos.prescription.get(
-                    session, self.prescription_id
+                    session,
+                    self.prescription_id,
                 )
                 if prescription is None:
                     raise ValueError(
@@ -73,21 +98,24 @@ class DoctorCreatePrescriptionItemPage(BasePage):
             try:
                 with self.app.session_scope() as session:
                     if self.appointment_id is not None:
-                        prescription = self.app.repos.prescription.add_prescription_for_appointment_id(
-                            session, self.appointment_id
+                        if not self.prescription:
+                            prescription = self.app.repos.prescription.add_prescription_for_appointment_id(
+                                session, self.appointment_id
+                            )
+                            self.prescription = prescription
+
+                    if self.prescription:
+                        self.app.repos.prescription.add_prescription_item(
+                            session,
+                            prescription_id=self.prescription.prescription_id,
+                            medication_id=data[FieldKey.MEDICATION.value],
+                            instructions=data[FieldKey.INSTRUCTIONS.value],
                         )
-                        self.prescription = prescription
-                    self.app.repos.prescription.add_prescription_item(
-                        session,
-                        prescription_id=self.prescription.prescription_id,
-                        medication_id=data[FieldKey.MEDICATION.value],
-                        instructions=data[FieldKey.INSTRUCTIONS.value],
-                    )
-                    prompt_success(
-                        self.console,
-                        "Prescription item created successfully.",
-                    )
-                    return
+                        prompt_success(
+                            self.console,
+                            "Prescription item created successfully.",
+                        )
+                        return
             except Exception as e:
                 prompt_error(self.console, f"Failed to create prescription item: {e}")
                 continue

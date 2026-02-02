@@ -37,6 +37,7 @@ class PatientViewAppointmentPage(BasePage):
                         AppointmentLoad.CREATED_BY_PROFILE_WITH_PERSON,
                         *AppointmentLoad.CREATED_BY_PROFILE_WITH_POSSIBLE_PROFILES,
                         AppointmentLoad.CANCELLED_BY_PROFILE,
+                        AppointmentLoad.PRESCRIPTION_WITH_ITEMS_WITH_MEDICATION,
                     ],
                 )
                 if appointment is None:

@@ -165,10 +165,10 @@ def doctor_display_prescription_items_for_prescriptions_table(
     show_number: bool = True,
 ):
     for prescription in prescriptions:
-        title += (
+        table_title = title + (
             f" (Created on {prescription.created_datetime.strftime("%Y-%m-%d %H:%M")})"
         )
-        table = Table(title=title, title_justify="left", show_lines=True)
+        table = Table(title=table_title, title_justify="left", show_lines=True)
         if show_number:
             table.add_column("No.")
         table.add_column("Medication (Generic Name)")

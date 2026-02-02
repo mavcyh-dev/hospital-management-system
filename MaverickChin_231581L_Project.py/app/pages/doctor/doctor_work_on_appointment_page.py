@@ -97,18 +97,9 @@ class DoctorWorkOnAppointmentPage(BasePage):
                     continue
 
             if selected_choice == PageChoice.MANAGE_PRESCRIPTION:
-                if not self.appointment.prescriptions:
-                    return DoctorManagePrescriptionPage(
-                        self.app, appointment_id=self.appointment_id
-                    )
-                else:
-                    # Take first prescription. There is only supposed to be a single prescription for a single appointment as of now.
-                    return DoctorManagePrescriptionPage(
-                        self.app,
-                        prescription_id=self.appointment.prescriptions[
-                            0
-                        ].prescription_id,
-                    )
+                return DoctorManagePrescriptionPage(
+                    self.app, appointment_id=self.appointment_id
+                )
 
             if selected_choice == PageChoice.MARK_AS_COMPLETED:
                 with self.app.session_scope() as session:

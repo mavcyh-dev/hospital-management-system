@@ -19,7 +19,6 @@ from app.ui.prompts import KeyAction, prompt_choice
 class PageChoice(Enum):
     PROCESS_APPOINTMENT_REQUEST = "Process appointment request"
     REJECT_APPOINTMENT_REQUEST = "Reject appointment request"
-    VIEW_LINKED_APPOINTMENT = "View linked appointment"
     BACK = "Back"
 
 
@@ -132,10 +131,6 @@ class ReceptionistWorkOnAppointmentRequestPage(BasePage):
                         )
                         break
 
-            if selected_choice == PageChoice.VIEW_LINKED_APPOINTMENT:
-                assert self.appointment_request.appointment_id is not None
-                pass
-
     def _generate_choices(self):
         choices: list[tuple[PageChoice, str]] = []
         if self.appointment_request.is_pending:
@@ -150,13 +145,6 @@ class ReceptionistWorkOnAppointmentRequestPage(BasePage):
                         PageChoice.REJECT_APPOINTMENT_REQUEST.value,
                     ),
                 ]
-            )
-        if self.appointment_request.is_approved:
-            choices.append(
-                (
-                    PageChoice.VIEW_LINKED_APPOINTMENT,
-                    PageChoice.VIEW_LINKED_APPOINTMENT.value,
-                )
             )
         if len(choices) == 0:
             choices.append((PageChoice.BACK, PageChoice.BACK.value))
